@@ -4,9 +4,17 @@ var hfuter = 60;
 var hheader = 60;
 var pointsNow = 10;
 var canvas;
+var baseColor="#585555";
+var baseGrad = '#969696';
+var ballGrad = '#e2d6d6';
+var cellSize;
+var timerHMS=0;
+var sizeNextball;
+var lenLine = 5;
 //инициализация
 function init(wCount, hCount, rCount) {   
-	var cellSize = 60;
+	cellSize = Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount);//60
+	sizeNextball = cellSize-20;
     canvas = document.getElementById("linesMironovich");
 	
 	canvas.width = cellSize*wCount; 	// ширина
@@ -15,30 +23,57 @@ function init(wCount, hCount, rCount) {
 
 	var context = canvas.getContext("2d");
 	var field = new L5(); // создаём объект 
-		field.setParams(wCount, hCount, rCount);
+	field.setParams(wCount, hCount, rCount);
 
-		
-        // context.fillStyle = "#272323"; // цвет "заливки" futer
-        // context.fillRect(0, hfuter, canvas.width, hfuter); // закраска   
 
-        context.fillStyle = "#969696"; // основной цвет "заливки"
-        context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
-		field.draw(context, cellSize);
-		
-		
-				
-		// функция производит необходимые действие при клике	
-		function event(x, y) { field.move(x, y); }
+	context.fillStyle = baseColor; // основной цвет "заливки"
+	context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
+	field.draw(context, cellSize);
 	
-		// обрабатка кликов мыши
-    	canvas.onclick = function(e) 
-		{ 
-			e = e||window.event;
-        	var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
-			var y = Math.floor((e.pageY-hfuter)  / cellSize || 0);
-        	event(y,x); 
-    	};
-   
+	
+			
+	// функция производит необходимые действие при клике	
+	function event(x, y) { field.move(x, y); }
+
+	// обрабатка кликов мыши
+	canvas.onclick = function(e) 
+	{ 
+		e = e||window.event;
+		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
+		var y = Math.floor((e.pageY-hfuter)  / cellSize || 0);
+		if((x>0&&y>0)&&(x<9&&y<9))
+			event(y,x); 
+		else if (y===9)
+			console.log('menu')
+	};
+
+	function str0l(val,len) {
+		var strVal=val.toString();
+		while ( strVal.length < len )
+			strVal='0'+strVal;
+		return strVal;
+	};
+	var oldTimer = '';
+
+	function setTimer(){
+		var y = 5;//смещение относительно центра футера
+		context.font = "bold 10px Sans";
+		var timerH = parseInt(timerHMS/3600);
+		var timerM = parseInt((timerHMS/60)%60);
+		var timerS = parseInt(timerHMS%60);		
+		var timerTXT = str0l(timerH,2) + ':' + str0l(timerM,2) + ':' + str0l(timerS,2);
+		var pozTimer = canvas.width/2-(sizeNextball*3)/2+sizeNextball;
+		context.fillStyle = baseColor; // or whatever color the background is.
+		context.fillText(oldTimer, pozTimer,hfuter-7);
+		context.fillStyle = '#070449'; // or whatever color the text should be.
+		context.fillText(timerTXT, pozTimer,hfuter-7);	
+		oldTimer = timerTXT;	
+		timerHMS++;
+	};
+	setTimer();
+	setInterval(setTimer,1000);
+	field.drawMenu();
+
 }
 
 function L5() 
@@ -62,6 +97,7 @@ function L5()
 	var size;	
 	var masRandom = Array();
 	var randomCurrent = 0;
+	var oldText = '';
 	
 	//таймер для прыганья ^_^
 	self.runMultiple = function ()
@@ -220,7 +256,7 @@ function L5()
 		}
 		
 		
-		if(sameColorCount>=4)
+		if(sameColorCount>=lenLine)
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
@@ -308,6 +344,7 @@ function L5()
 		if(loser) return;
 		
 		//если повторно на тот же шарик нажали
+
 		if(curI === i && curJ === j)
 			self.clearTimer(i,j);
 		else
@@ -327,23 +364,24 @@ function L5()
 			else
 			{
 				//если может пройти
-				if(self.checkPassability(i,j))
-				{
-					//ползёт
-					self.circleGo(i,j);
-					
-					//если ничего не исчезло
-					if(!self.checkLines(i,j))
-						//новые шары
-						self.drawRandomCircles();
+				if(curI != -1 && curJ != -1)
+					if(self.checkPassability(i,j))
+					{
+						//ползёт
+						self.circleGo(i,j);
 						
+						//если ничего не исчезло
+						if(!self.checkLines(i,j))
+							//новые шары
+							self.drawRandomCircles();
+							
+						else 
+							self.drawPoints();
+						
+					}
 					else 
-						self.drawPoints();
-					
-				}
-				else 
-				{
-				}
+					{
+					}
 			}
 		}
 		
@@ -375,6 +413,38 @@ function L5()
 		context.lineTo(x2,y2);
 		context.lineTo(x1, y2);
 		context.lineTo(x1, y1);
+
+		var gradient = context.createLinearGradient(x1, y1, x2, y2);
+		gradient.addColorStop(0, baseColor);
+		gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
+		
+		context.fillStyle = gradient; 
+		context.fillRect(x1, y1, x2-x1, y2-y1);
+
+		context.stroke();
+		
+    };
+    // рисуем пункт меню
+    self.cellViewMenu = function(x1,y1,x2,y2) 
+	{
+		// context.beginPath();   
+		// context.lineWidth = 2;
+		// context.moveTo(x1, y1);
+		// context.lineTo(x2, y1);
+		// context.lineTo(x2,y2);
+		// context.lineTo(x1, y2);
+		// context.lineTo(x1, y1);
+
+
+		context.beginPath();
+		context.arc(x1+cellSize/2, y1+cellSize/2, cellSize/2 , 0, 2*Math.PI);
+
+		var gradient = context.createRadialGradient(x1, y1,0,x2, y2, cellSize*2);
+		gradient.addColorStop(0, baseColor);
+		gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
+		
+		context.fillStyle = gradient; 
+		context.fill();
 		context.stroke();
 		
     };
@@ -388,10 +458,16 @@ function L5()
 		console.log(''+curX+'-'+curY);
 		//сначала заливка фоном
 		context.beginPath();
-		context.fillStyle = "#969696";
 		context.strokeStyle = "#000";
 		context.moveTo(curX, curY);
-    	context.fillRect(curX, curY, size, size);
+
+		var gradient = context.createLinearGradient(curX, curY, curX+size, curY+size);
+		gradient.addColorStop(0, baseColor);
+		gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
+		
+		context.fillStyle = gradient; 
+
+		context.fillRect(curX, curY, size, size);
 		context.stroke();
 		self.cellView(curX, curY, curX+size, curY+size)
 		
@@ -403,29 +479,15 @@ function L5()
 		var rand = Math.random(); 
 		switch(n)
 		{
-			case 1: return '#d71f42';
-			case 2: return '#281fd7';
-			case 3: return '#1fd74f';
-			case 4: return '#e2ee59';
-			default: return '#9721d4';
+			case 1: return '#c70b2f';
+			case 2: return '#120aaa';
+			case 3: return '#08b134';
+			case 4: return '#e6be34';
+			default: return '#6e08a3';
 		}
 		
 	};
   
-	self.getDarkColor = function(curColor)		 
-	{
-		console.log(curColor);
-		console.log(typeof(curColor));
-		switch(curColor)
-		{
-			case '#d71f42': return '#320138';//красный
-			case '#281fd7': return '#050239';//синий
-			case '#1fd74f': return '#023610';//зеленый
-			case '#e2ee59': return '#3e4304';//желтый
-			default: return '#47096a';//фиолетовый
-		}
-		
-	};
   
   	self.randomN = function(n)		 
 	{
@@ -438,7 +500,6 @@ function L5()
 			return 3;
 		if(rand<0.8) 
 			return 4;
-		
 		return 5;
 		
 	};
@@ -453,11 +514,10 @@ function L5()
 		context.moveTo((x+0.5)*self.size+radius ,(y+0.5)*size);
 		context.arc((x+0.5)*size, (y+0.5)*size+h+hfuter, radius , 0, 2*Math.PI);
 		//раскрашиваем градиентом
-		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hfuter, radius,(x+0.5)*size-radius, (y+0.5)*size+h+hfuter+10, 10);
+		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hfuter, radius,(x+0.5)*size-radius, (y+0.5)*size+h+hfuter+5, 2);
 		gradient.addColorStop(0, color);
-		// gradient.addColorStop(0.5, color);
-		console.log(self.getDarkColor(color));
-		gradient.addColorStop(1, self.getDarkColor(color));
+		gradient.addColorStop(0.5, color);
+		gradient.addColorStop(1, ballGrad);//self.getDarkColor(color));
 		
 		context.fillStyle = gradient; 
 		context.fill();
@@ -498,20 +558,29 @@ function L5()
 	{
 		
 		context.beginPath();
-		context.fillStyle = "#969696";
+		context.fillStyle = baseColor;
 		context.strokeStyle = "#000";
 		context.moveTo(size*wCount+2, 0);
     	context.fillRect(size*wCount+2, hfuter, size*wCount+hfuter+hheader+30, size*hCount);
 		context.stroke();
-		
-		
-        context.fillStyle = "#000"; 
-		context.font = "bold 30px Sans";
-		context.fillText('Points:',pointsNow,hfuter/2);
 
-		context.font = "bold 20px Sans";
-		context.fillText(points,pointsNow+100,hfuter/2);
-		
+		var y = 5;//смещение относительно центра футера
+		context.font = "bold 40px Sans";
+		var pointsTXT = ''+points;
+		while(pointsTXT.length<6)
+			pointsTXT = "0"+pointsTXT
+		context.fillStyle = baseColor; // or whatever color the background is.
+		context.textBaseline="middle";
+		context.fillText(oldText, pointsNow,hfuter/2);
+		context.fillStyle = '#000000'; // or whatever color the text should be.
+		context.fillText(pointsTXT, pointsNow,hfuter/2);	
+		oldText = pointsTXT;	
+
+		//рисуем ячейки для след шаров
+		var pozNextBall = canvas.width/2-(sizeNextball*3)/2;
+		for(var i=0;i<3;i++)
+			self.cellView(pozNextBall+i*sizeNextball,hfuter/2-y-sizeNextball/2,pozNextBall+(i+1)*sizeNextball,hfuter/2-y+sizeNextball/2);
+
 	}
 	
 	self.drawRandomCircles = function()	
@@ -527,8 +596,15 @@ function L5()
 		if(loser) self.showLosingMsg();
 	}
 	
-    // рисуем поле
-    self.draw = function(cont, s) 
+	//рисуем меню
+	self.drawMenu = function(){
+		var posMenu = canvas.width/2-(cellSize*6)/2;
+		for(var i=0;i<6;i++)
+			self.cellViewMenu(posMenu+i*cellSize,canvas.height-hheader,posMenu+(i+1)*cellSize,canvas.height-hheader+cellSize);
+	};
+
+	// рисуем поле
+	self.draw = function(cont, s) 
 	{
 		context = cont;
 		size = s;
