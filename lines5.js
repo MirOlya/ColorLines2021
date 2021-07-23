@@ -11,6 +11,7 @@ var cellSize;
 var timerHMS=0;
 var sizeNextball;
 var lenLine = 5;
+var flSound = true;
 //инициализация
 function init(wCount, hCount, rCount) {   
 	cellSize = Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount);//60
@@ -19,7 +20,7 @@ function init(wCount, hCount, rCount) {
 	
 	canvas.width = cellSize*wCount; 	// ширина
 	canvas.height = cellSize*hCount+hfuter+hheader;	// высота
-	console.log(''+canvas.width+' - '+canvas.height);
+	// console.log(''+canvas.width+' - '+canvas.height);
 
 	var context = canvas.getContext("2d");
 	var field = new L5(); // создаём объект 
@@ -35,16 +36,62 @@ function init(wCount, hCount, rCount) {
 	// функция производит необходимые действие при клике	
 	function event(x, y) { field.move(x, y); }
 
+	//работа меню
+
+	function showMenu(x){
+		if(x===6){
+			//info
+			var info=document.createElement('DIV');
+			var winfo = 300;
+			var hinfo = 200;
+			info.style.width=winfo+'px';
+			info.style.height=hinfo+'px';
+			info.style.border='1px solid blue';
+			info.style.backgroundColor = 'white';
+			info.style.position = 'absolute';
+			info.style.left = (window.innerWidth-winfo)/2;
+			info.style.top = (window.innerHeight-hinfo)/2;
+			info.id = 'info';
+			document.getElementById('maincontecst').appendChild(info);
+			var butCloseInfo = document.createElement('BUttON');
+			butCloseInfo.style.width=30+'px';
+			butCloseInfo.style.height=20+'px';
+			butCloseInfo.style.border='1px solid blue';
+			butCloseInfo.style.backgroundColor = 'blue';
+			butCloseInfo.textContent = 'X';
+			info.appendChild(butCloseInfo);
+			butCloseInfo.addEventListener("click", closeInfo);
+		}
+		else if(x===5){
+			flSound = !flSound;
+			var img = new Image();
+				img.onload = function() {
+					context.drawImage(img,x*cellSize+cellSize/4, 10*cellSize+cellSize/4+4,cellSize/2,cellSize/2);
+				};
+			img.src = flSound?"music.svg":"mute.svg";
+		}
+		else if(x===1){
+			//field.draw()		
+		};
+	};
+	//закрываем окно инфо
+	function closeInfo(){
+		document.getElementById('maincontecst').removeChild(document.getElementById('info'));
+	}
 	// обрабатка кликов мыши
 	canvas.onclick = function(e) 
 	{ 
 		e = e||window.event;
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
 		var y = Math.floor((e.pageY-hfuter)  / cellSize || 0);
-		if((x>0&&y>0)&&(x<9&&y<9))
+		if((x>=0&&y>=0)&&(x<9&&y<9))
 			event(y,x); 
-		else if (y===9)
-			console.log('menu')
+		else if (y===9){
+			console.log('menu');
+			console.log(x);
+			showMenu(x)
+		}
+
 	};
 
 	function str0l(val,len) {
@@ -53,26 +100,30 @@ function init(wCount, hCount, rCount) {
 			strVal='0'+strVal;
 		return strVal;
 	};
-	var oldTimer = '';
+	var oldTimer = '00:00:00';
 
 	function setTimer(){
-		var y = 5;//смещение относительно центра футера
-		context.font = "bold 10px Sans";
+		context.beginPath();
+		context.font = "bold 20px Sans";
 		var timerH = parseInt(timerHMS/3600);
 		var timerM = parseInt((timerHMS/60)%60);
 		var timerS = parseInt(timerHMS%60);		
 		var timerTXT = str0l(timerH,2) + ':' + str0l(timerM,2) + ':' + str0l(timerS,2);
-		var pozTimer = canvas.width/2-(sizeNextball*3)/2+sizeNextball;
+		var posTimer = cellSize*8;//6 пунктов меню+первый пустой
+		// console.log(canvas.width);
+		context.textBaseline="middle";
+		context.textAlign = 'center';
 		context.fillStyle = baseColor; // or whatever color the background is.
-		context.fillText(oldTimer, pozTimer,hfuter-7);
+		context.fillText(oldTimer, posTimer,canvas.height-hfuter/2);
+		// console.log(canvas.height);
 		context.fillStyle = '#070449'; // or whatever color the text should be.
-		context.fillText(timerTXT, pozTimer,hfuter-7);	
+		context.fillText(timerTXT, posTimer,canvas.height-hfuter/2);	
 		oldTimer = timerTXT;	
 		timerHMS++;
 	};
+	field.drawMenu();
 	setTimer();
 	setInterval(setTimer,1000);
-	field.drawMenu();
 
 }
 
@@ -80,6 +131,7 @@ function L5()
 {
 	var loser = false;
 	var rCount = 0;			//  количество рэндомно генерируемых шаров 
+	var rNext = 3;			//  количество рэндомно генерируемых шаров для следующего шага
     var wCount = 0;			//  в ширину сколько
     var hCount = 0;  		//  в высоту сколько
     var mas = null;			//	поле
@@ -151,37 +203,38 @@ function L5()
 			beforeCount = 0;
 			for(var i = 0; i < hCount; ++i)
 				for(var j = 0; j < wCount; ++j)
-					if(mas[i][j] === -1) ++beforeCount;	
+					if(mas[i][j] < 0) ++beforeCount;	
 					
 			for(var i = 0; i < hCount; ++i)
 				for(var j = 0; j < wCount; ++j)
-					if(mas[i][j] === -1)
+					if(mas[i][j] < 0)
 					{	
-						if((i-1 >= 0) && (mas[i-1][j] === 0))	
-							mas[i-1][j] = -1;
-						if((i+1 < hCount) && (mas[i+1][j] === 0))	
-							mas[i+1][j] = -1;
-						if((j-1 >= 0) && (mas[i][j-1] === 0))	
-							mas[i][j-1] = -1;
-						if((j+1 < wCount) && (mas[i][j+1] === 0))	
-							mas[i][j+1] = -1;
+						if((i-1 >= 0) && ((mas[i-1][j] === 0)||(mas[i-1][j] > 10)))	
+							mas[i-1][j] = mas[i-1][j]===0?-1:mas[i-1][j]*(-1);
+						if((i+1 < hCount) && ((mas[i+1][j] === 0)||(mas[i+1][j] > 10)))	
+							mas[i+1][j] = mas[i+1][j]===0?-1:mas[i+1][j]*(-1);
+						if((j-1 >= 0) && ((mas[i][j-1] === 0)||(mas[i][j-1] > 10)))	
+							mas[i][j-1] = mas[i][j-1]===0?-1:mas[i][j-1]*(-1);
+						if((j+1 < wCount) && ((mas[i][j+1] === 0)||(mas[i][j+1] > 10)))	
+							mas[i][j+1] = mas[i][j+1]===0?-1:mas[i][j+1]*(-1);
 					}
 				
 			for(var i = 0; i < hCount; ++i)
 				for(var j = 0; j < wCount; ++j)
-					if(mas[i][j] === -1) ++afterCount;	
+					if(mas[i][j] < 0) ++afterCount;	
 			if(afterCount === beforeCount) break;
 			
 		}
 		
 		var cool = false;
-		if(mas[iCheck][jCheck] === -1)	
+		if(mas[iCheck][jCheck] < 0)	
 			cool = true;
 		
 		mas[curI][curJ] = curColor;	
 		for(var i = 0; i < hCount; ++i)
 			for(var j = 0; j < wCount; ++j)
-				if(mas[i][j] === -1) mas[i][j] = 0;
+				if(mas[i][j] === -1) mas[i][j] = 0
+				else if(mas[i][j] < 0) mas[i][j]=mas[i][j]*(-1)
 					
 		return cool;
 	}
@@ -194,8 +247,10 @@ function L5()
 	
 	self.getPoints = function(sameColorCount)
 	{
-		
-		return Math.pow(2,sameColorCount);
+		console.log('sameColorCount = '+sameColorCount);
+		console.log(sameColorCount*(sameColorCount-lenLine+1));
+		return sameColorCount*(sameColorCount-lenLine+1);//Math.pow(2,sameColorCount);
+
 	}
 	
 	self.checkOfLosing = function ()
@@ -262,9 +317,7 @@ function L5()
 			points += self.getPoints(sameColorCount);
 			for(var j=0; j <sameColorCount; ++j)
 				self.eraseCircle(iCheck,jMasForErase[j]);
-			
-			
-			
+			sameColorCount = 0;
 		}
 		
 		return erase;
@@ -301,40 +354,139 @@ function L5()
 		}
 		
 		
-		if(sameColorCount>=4)
+		if(sameColorCount>=lenLine)
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
 			for(var i=0; i <sameColorCount; ++i)
 				self.eraseCircle(iMasForErase[i],jCheck);
-			
-			
-			
+			sameColorCount = 0;
 		}
 		
 		return erase;
 	}
+
+	//проверка диагонали слева направо
+	self.checkDiagonalLine_left = function (iCheck, jCheck)
+	{
+		var erase = false;
+		var sameColorCount = 0;
+		var iMasForErase = new Array();
+		var yi = 1;
+		for(var i=iCheck+1; i < hCount; i++)
+		{
+			if(mas[i][jCheck+yi] === mas[iCheck][jCheck])
+			{
+				iMasForErase[sameColorCount] = {};
+				iMasForErase[sameColorCount]['i'] = i;
+				iMasForErase[sameColorCount]['j'] = jCheck+yi;
+				++sameColorCount;
+				++yi;
+				if((jCheck+yi)>wCount) break;
+			}
+			else break;
+		};
+		yi=0;
+		for(var i=iCheck; i >=0; i--)
+		{
+			if(mas[i][jCheck-yi] === mas[iCheck][jCheck])
+			{
+				iMasForErase[sameColorCount] = {};
+				iMasForErase[sameColorCount]['i'] = i;
+				iMasForErase[sameColorCount]['j'] = jCheck-yi;
+				++sameColorCount;
+				++yi;
+				if((jCheck-yi)<0) break;
+			}
+			else break;
+		};
+		if(sameColorCount>=lenLine)
+		{
+			erase = true;
+			points += self.getPoints(sameColorCount);
+			for(var i=0; i <sameColorCount; ++i)
+				self.eraseCircle(iMasForErase[i]['i'],iMasForErase[i]['j']);
+			sameColorCount = 0;
+		}
+
+		
+		return erase;
+	}
 	
+	//проверка диагонали справа налево
+	self.checkDiagonalLine_right = function (iCheck, jCheck)
+	{
+		var erase = false;
+		var sameColorCount = 0;
+		var iMasForErase = new Array();
+		var yi = 1;
+		for(var i=iCheck+1; i < hCount; i++)
+		{
+			if(mas[i][jCheck-yi] === mas[iCheck][jCheck])
+			{
+				iMasForErase[sameColorCount] = {};
+				iMasForErase[sameColorCount]['i'] = i;
+				iMasForErase[sameColorCount]['j'] = jCheck-yi;
+				++sameColorCount;
+				++yi;
+				if((jCheck-yi)<0) break;
+			}
+			else break;
+		};
+		yi=0;
+		for(var i=iCheck; i >=0; i--)
+		{
+			if(mas[i][jCheck+yi] === mas[iCheck][jCheck])
+			{
+				iMasForErase[sameColorCount] = {};
+				iMasForErase[sameColorCount]['i'] = i;
+				iMasForErase[sameColorCount]['j'] = jCheck+yi;
+				++sameColorCount;
+				++yi;
+				if((jCheck+yi)>wCount) break;
+			}
+			else break;
+		};
+		if(sameColorCount>=lenLine)
+		{
+			erase = true;
+			points += self.getPoints(sameColorCount);
+			for(var i=0; i <sameColorCount; ++i)
+				self.eraseCircle(iMasForErase[i]['i'],iMasForErase[i]['j']);
+				sameColorCount = 0;
+		}
+
+		
+		return erase;
+	}
+
 	//проверка на уничтожение линий
 	self.checkLines = function (i,j)
 	{
 		var erase = false;
 		var curColorN = mas[i][j];
 		if(self.checkHorizontalLine(i,j))
-		{
-			erase = true;		
-			self.circleView(i,j,0,self.getColor(curColorN));	
-			mas[i][j] = curColorN;
-		}
-		if(self.checkVerticalLine(i,j) || erase)
-		{	
-			self.eraseCircle(i,j);
-			erase = true;	
-		}
-			
+			{
+				erase = true;		
+				self.circleView(i,j,0,self.getColor(curColorN));	
+				mas[i][j] = curColorN;
+			}
+		else if(self.checkVerticalLine(i,j))
+			{	
+				self.eraseCircle(i,j);
+				erase = true;	
+			}
+		else if(self.checkDiagonalLine_left(i,j))
+			{	
+				self.eraseCircle(i,j);
+				erase = true;	
+			}
+		else if(self.checkDiagonalLine_right(i,j))
+			{	
+				self.eraseCircle(i,j);
+				erase = true;	
+			};
 
-			
-			
 		return erase;
 	}
 	
@@ -351,8 +503,9 @@ function L5()
 		{
 			
 			// alert(curI+"==="+curJ);
-			console.log(mas[i][j]);
-			if(mas[i][j] != 0)
+			// console.log(mas[i][j]);
+			//Проверяем нажатую ячейку - НАДО ДОДЕЛАТЬ
+			if((mas[i][j] != 0)&&(mas[i][j] <= 10))
 			{
 				//если был нажат ранее шарик, но сейчас жмём не на него
 				if(curI != -1 && curJ != -1)
@@ -364,20 +517,23 @@ function L5()
 			else
 			{
 				//если может пройти
+				console.log(''+curI+' '+curJ);
+				console.log(mas[i][j]);
 				if(curI != -1 && curJ != -1)
 					if(self.checkPassability(i,j))
 					{
 						//ползёт
 						self.circleGo(i,j);
-						
 						//если ничего не исчезло
-						if(!self.checkLines(i,j))
+						console.log(mas[i][j]);
+						if(!self.checkLines(i,j)){
 							//новые шары
-							self.drawRandomCircles();
-							
+							console.log('draw next circlis now');
+							self.drawNextCirclisNow();
+							self.drawRandomCirclesNext();
+						}
 						else 
 							self.drawPoints();
-						
 					}
 					else 
 					{
@@ -386,7 +542,25 @@ function L5()
 		}
 		
 		
-	}
+	};
+	
+	self.drawNextCirclisNow = function(){
+		console.log(mas);
+		for(var i=0;i<wCount;i++)
+			for(var j=0;j<hCount;j++){
+				console.log('1 = '+mas[i][j]+':'+i+' - '+j);
+				console.log((mas[i][j]>10));
+				if(mas[i][j]>10){
+					mas[i][j]=mas[i][j]-10;
+					console.log('2 = '+mas[i][j]);
+					if(!self.checkLines(i,j))
+						self.circleView(i,j,0, self.getColor(mas[i][j])); 
+					else 
+						self.drawPoints();
+				}
+			};
+			console.log(mas);
+	};
 	
 	
 	//двигаем шарик
@@ -425,28 +599,55 @@ function L5()
 		
     };
     // рисуем пункт меню
-    self.cellViewMenu = function(x1,y1,x2,y2) 
+    self.cellViewMenu = function(x1,y1,x2,y2,punct) 
 	{
-		// context.beginPath();   
-		// context.lineWidth = 2;
-		// context.moveTo(x1, y1);
-		// context.lineTo(x2, y1);
-		// context.lineTo(x2,y2);
-		// context.lineTo(x1, y2);
-		// context.lineTo(x1, y1);
-
-
 		context.beginPath();
-		context.arc(x1+cellSize/2, y1+cellSize/2, cellSize/2 , 0, 2*Math.PI);
+		context.strokeStyle = baseColor;
+		context.arc(x1+cellSize/2, y1+cellSize/2+2, cellSize/2 , 0, 2*Math.PI);
 
-		var gradient = context.createRadialGradient(x1, y1,0,x2, y2, cellSize*2);
+		var gradient = context.createRadialGradient(x1, y1,cellSize,x1, y1, cellSize/2);
 		gradient.addColorStop(0, baseColor);
-		gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
+		gradient.addColorStop(1, baseGrad);
+		//gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
 		
 		context.fillStyle = gradient; 
 		context.fill();
 		context.stroke();
-		
+
+
+		var img = new Image();
+		img.onload = function() {
+			context.drawImage(img,x1+cellSize/4, y1+cellSize/4,cellSize/2,cellSize/2);
+		};
+		if(punct===5){
+			//info
+			context.font = "30px Verdana";
+			context.strokeStyle = "#c70b2f";
+			context.lineWidth = 2;
+			context.textAlign = "center";
+			context.textBaseline="middle";
+			context.strokeText("I", x1+cellSize/2, y1+cellSize/2);
+		}
+		else if(punct===4){
+			//sound
+			img.src = flSound?"music.svg":"mute.svg";
+		}
+		else if(punct===3){
+			//save
+			img.src = "save.svg";
+		}
+		else if(punct===2){
+			//open
+			img.src = "open.svg";
+		}
+		else if(punct===1){
+			//undo
+			img.src = "undo.svg";
+		}
+		else if(punct===0){
+			//reboot
+			img.src = "reboot.svg";
+		}
     };
   
   	//чистка ячейки
@@ -455,7 +656,7 @@ function L5()
 		//определяем текущие координаты ячейки
 		var curX = size*x;
 		var curY = hfuter+size*y;
-		console.log(''+curX+'-'+curY);
+		// console.log(''+curX+'-'+curY);
 		//сначала заливка фоном
 		context.beginPath();
 		context.strokeStyle = "#000";
@@ -483,7 +684,12 @@ function L5()
 			case 2: return '#120aaa';
 			case 3: return '#08b134';
 			case 4: return '#e6be34';
-			default: return '#6e08a3';
+			case 5: return '#6e08a3';
+			case 11: return '#c70b2f';
+			case 12: return '#120aaa';
+			case 13: return '#08b134';
+			case 14: return '#e6be34';
+			case 15: return '#6e08a3';
 		}
 		
 	};
@@ -501,6 +707,20 @@ function L5()
 		if(rand<0.8) 
 			return 4;
 		return 5;
+	};
+	
+	self.randomNNext = function(n)		 
+	{
+		var rand=Math.random(); 
+		if(rand<0.2) 
+			return 11;
+		if(rand<0.4) 
+			return 12;
+		if(rand<0.6) 
+			return 13;
+		if(rand<0.8) 
+			return 14;
+		return 15;
 		
 	};
 	
@@ -525,6 +745,26 @@ function L5()
 		//context.restore();
     };
 	
+	//рисуем NEXT шарик в игровом поле
+	self.circleViewNext = function(y,x, h, color) 
+	{
+		var radius = size/10;
+		context.strokeStyle = color;
+	
+		context.beginPath();
+		context.moveTo((x+0.5)*self.size+radius ,(y+0.5)*size);
+		context.arc((x+0.5)*size, (y+0.5)*size+h+hfuter, radius , 0, 2*Math.PI);
+		//раскрашиваем градиентом
+		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hfuter, radius,(x+0.5)*size-radius, (y+0.5)*size+h+hfuter+5, 2);
+		gradient.addColorStop(0, color);
+		gradient.addColorStop(0.5, color);
+		gradient.addColorStop(1, ballGrad);//self.getDarkColor(color));
+		
+		context.fillStyle = gradient; 
+		context.fill();
+		context.stroke();
+		//context.restore();
+    };
 	
   	self.drawRandomCircle = function()		 
 	{
@@ -553,7 +793,39 @@ function L5()
 		}
 		if(self.checkOfLosing())  return;
 	};
+	//рисуем след шарик и на поле и в шапке
+	self.drawRandomCircleNext = function()		 
+	{
+		
+		if(self.checkOfLosing())  return 0;
+		var randj=Math.round((Math.random())*(wCount-1)); 
+		var randi=Math.round((Math.random())*(hCount-1)); 
+		var fl=0;
+		var nextColor = 0;
+		while(fl===0)
+		{
+			if(mas[randi][randj]===0)
+			{
+				mas[randi][randj] = self.randomNNext();
+				self.circleViewNext(randi,randj,0, self.getColor(mas[randi][randj])); 
+				nextColor = self.getColor(mas[randi][randj]);
+				masRandom[randomCurrent][0] = randi;
+				masRandom[randomCurrent][1] = randj;
+				randomCurrent++;
+				fl=1;
+				//alert('g');
+			}
+			else
+			{
+				randj=Math.round((Math.random())*(wCount-1)); 
+				randi=Math.round((Math.random())*(hCount-1)); 
+			}
+		};
+		if(self.checkOfLosing())  return 0;
+		return nextColor
+	};
 	
+
 	self.drawPoints = function() 
 	{
 		
@@ -564,23 +836,18 @@ function L5()
     	context.fillRect(size*wCount+2, hfuter, size*wCount+hfuter+hheader+30, size*hCount);
 		context.stroke();
 
-		var y = 5;//смещение относительно центра футера
 		context.font = "bold 40px Sans";
 		var pointsTXT = ''+points;
 		while(pointsTXT.length<6)
-			pointsTXT = "0"+pointsTXT
+			pointsTXT = "0"+pointsTXT;
 		context.fillStyle = baseColor; // or whatever color the background is.
 		context.textBaseline="middle";
+		context.textAlign = 'start';
 		context.fillText(oldText, pointsNow,hfuter/2);
 		context.fillStyle = '#000000'; // or whatever color the text should be.
 		context.fillText(pointsTXT, pointsNow,hfuter/2);	
+		// console.log(''+pointsTXT+', '+pointsNow);
 		oldText = pointsTXT;	
-
-		//рисуем ячейки для след шаров
-		var pozNextBall = canvas.width/2-(sizeNextball*3)/2;
-		for(var i=0;i<3;i++)
-			self.cellView(pozNextBall+i*sizeNextball,hfuter/2-y-sizeNextball/2,pozNextBall+(i+1)*sizeNextball,hfuter/2-y+sizeNextball/2);
-
 	}
 	
 	self.drawRandomCircles = function()	
@@ -595,12 +862,57 @@ function L5()
 		randomCurrent = 0;
 		if(loser) self.showLosingMsg();
 	}
+
+	self.drawRandomCirclesNext = function()	
+	{
+		var pozNextBall = canvas.width/2-(sizeNextball*3)/2;
+		var radius = sizeNextball/4;
+		var y = 5;//смещение относительно центра футера
+		var y1NextBallMenu = hfuter/2-y-sizeNextball/2;
+		var y2NextBallMenu = hfuter/2-y+sizeNextball/2;
+		for (var i = 0; i < rNext; i++){
+			var nextColor = self.drawRandomCircleNext();	
+			
+			//рисуем ячейки для след шаров
+				var x1NextBallMenu = pozNextBall+i*sizeNextball;
+				var x2NextBallMenu = pozNextBall+(i+1)*sizeNextball;
+				context.strokeStyle = "#000000";
+				self.cellView(x1NextBallMenu,y1NextBallMenu,x2NextBallMenu,y2NextBallMenu);
+				//рисуем сам следующий шарик в меню
+
+				context.strokeStyle = nextColor;
+			
+				context.beginPath();
+				//context.moveTo(x1NextBallMenu+radius ,y1NextBallMenu+radius);
+				context.arc(x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2 ,y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2, radius , 0, 2*Math.PI);
+				//раскрашиваем градиентом
+				var gradient = context.createRadialGradient(x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2, y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2, radius,x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2-radius, y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2+5, 2);
+		
+
+
+				gradient.addColorStop(0, nextColor);
+				gradient.addColorStop(0.5, nextColor);
+				gradient.addColorStop(1, ballGrad);//self.getDarkColor(color));
+						
+				context.fillStyle = gradient; 
+				context.fill();
+				context.stroke();
+			};
+		//проверям, может рэндомные шары норм в линию на уничтожение встали
+		for (var i = 0; i < rNext; i++) 
+			if(self.checkLines(masRandom[i][0],masRandom[i][1]))
+				self.drawPoints();
+					
+		randomCurrent = 0;
+		if(loser) self.showLosingMsg();
+	}
 	
+
 	//рисуем меню
 	self.drawMenu = function(){
-		var posMenu = canvas.width/2-(cellSize*6)/2;
+		var posMenu = cellSize;//canvas.width/2-(cellSize*6)/2;
 		for(var i=0;i<6;i++)
-			self.cellViewMenu(posMenu+i*cellSize,canvas.height-hheader,posMenu+(i+1)*cellSize,canvas.height-hheader+cellSize);
+			self.cellViewMenu(posMenu+i*cellSize,canvas.height-hheader,posMenu+(i+1)*cellSize,canvas.height-hheader+cellSize,i);
 	};
 
 	// рисуем поле
@@ -629,6 +941,7 @@ function L5()
 		
 		//начальные рэндомные шары
 		self.drawRandomCircles();
+		self.drawRandomCirclesNext();
 		self.drawPoints();
     };
 	
