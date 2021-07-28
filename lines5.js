@@ -15,47 +15,13 @@ var allColor = 7;
 var flSound = true;
 var Colors = {};
 Colors.names = {
-	//aqua: "#00ffff",
-	//azure: "#f0ffff",
-	// beige: "#f5f5dc",
-	// black: "#000000",
 	blue: "#0000ff",
-	//brown: "#a52a2a",
-	//cyan: "#00ffff",
 	darkblue: "#00008b",
-	//darkcyan: "#008b8b",
-	//darkgrey: "#a9a9a9",
-	//darkgreen: "#006400",
-	//darkkhaki: "#bdb76b",
-	//darkmagenta: "#8b008b",
-	// darkolivegreen: "#556b2f",
-	//darkorange: "#ff8c00",
-	//darkorchid: "#9932cc",
-	//darkred: "#8b0000",
-	// darksalmon: "#e9967a",
-	//darkviolet: "#9400d3",
 	fuchsia: "#ff00ff",
-	//gold: "#ffd700",
 	green: "#008000",
-	//indigo: "#4b0082",
-	//khaki: "#f0e68c",
-	//lightblue: "#add8e6",
-	//lightcyan: "#e0ffff",
-	//lightgreen: "#90ee90",
-	//lightgrey: "#d3d3d3",
-	//lightpink: "#ffb6c1",
-	//lightyellow: "#ffffe0",
-	//lime: "#00ff00",
-	//magenta: "#ff00ff",
-	//maroon: "#800000",
-	//navy: "#000080",
-	//olive: "#808000",
 	orange: "#ffa500",
-	//pink: "#ffc0cb",
-	// purple: "#800080",
 	violet: "#800080",
-	red: "#ff0000",
-	//silver: "##ffff00"
+	red: "#ff0000"
 };
 //инициализация
 function init(wCount, hCount, rCount) {   
@@ -138,6 +104,7 @@ function init(wCount, hCount, rCount) {
 			divFortxtinfo.appendChild(txtinfo);
 		}
 		else if(x===5){
+			//включить выключить звук
 			flSound = !flSound;
 			var img = new Image();
 				img.onload = function() {
@@ -146,9 +113,55 @@ function init(wCount, hCount, rCount) {
 			img.src = flSound?"music.svg":"mute.svg";
 		}
 		else if(x===1){
-			//field.draw()		
+			var newGame=document.createElement('DIV');
+			var wnewGame = canvas.width;
+			var hnewGame = 100;
+			newGame.style.width=(wnewGame-3)+'px';
+			newGame.style.height=hnewGame+'px';
+			newGame.style.border='1px solid blue';
+			newGame.style.backgroundColor = baseColor;
+			newGame.style.position = 'absolute';
+			newGame.style.display = 'flex';
+			newGame.style.left = (window.innerWidth-wnewGame)/2+'px';
+			newGame.style.top = canvas.height/2-hnewGame+'px';
+			newGame.id = 'newGame';
+			document.getElementById('maincontecst').appendChild(newGame);
+			var txtnewGame = document.createElement('span');
+			txtnewGame.style.font= "bold 15px Sans";
+			txtnewGame.style.color = 'darkblue';
+			txtnewGame.textContent = 'Вы действительно хотите начать новую игру?'
+			newGame.appendChild(txtnewGame);
+			var butOknewGame = document.createElement('BUttON');
+			butOknewGame.style.width=50+'px';
+			butOknewGame.style.height=50+'px';
+			butOknewGame.style.borderRadius='50%';
+			butOknewGame.style.border='1px solid'+baseGrad;
+			butOknewGame.style.backgroundColor = baseGrad;
+			butOknewGame.textContent = 'Да';
+			butOknewGame.style.left = (window.innerWidth-wnewGame)/2+'px';
+			butOknewGame.style.top = hnewGame/2+'px';
+			newGame.appendChild(butOknewGame);
+			butOknewGame.addEventListener("click", okNewGame);
+			
+			butOknewGame = document.createElement('BUttON');
+			butOknewGame.textContent = 'Нет';
+			butOknewGame.style.width=50+'px';
+			butOknewGame.style.height=50+'px';
+			butOknewGame.style.borderRadius='50%';
+			butOknewGame.style.border='1px solid'+baseGrad;
+			butOknewGame.style.backgroundColor = baseGrad;
+			// butOknewGame.style.left = (window.innerWidth-wnewGame)/2+'px';
+			// butOknewGame.style.top = hnewGame/2+'px';
+			newGame.appendChild(butOknewGame);
+			butOknewGame.addEventListener("click", okNewGame);
 		};
 	};
+	//начинаем новую игру
+	function okNewGame(){
+		document.getElementById('maincontecst').removeChild(document.getElementById('newGame'));
+
+	}
+
 	//закрываем окно инфо
 	function closeInfo(){
 		document.getElementById('maincontecst').removeChild(document.getElementById('info'));
@@ -168,8 +181,8 @@ function init(wCount, hCount, rCount) {
 		}
 
 	};
-
-	canvas.onmousemove = function(e) 
+	var xHint = 0;
+	canvas.onmousemove = function(e) //onmousemove
 	{ 
 		e = e||window.event;
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
@@ -177,56 +190,61 @@ function init(wCount, hCount, rCount) {
 		if (y===9){
 			console.log('menu');
 			console.log(x);
-			var wHint = 100;
-			var hHint = 40;
-			var step =25;
-			if(x===1){
-				if (!document.getElementById('hint')){
-					var hint = document.createElement('canvas');
-					hint.style.width=wHint+'px';
-					hint.style.height=hHint+'px';
-					hint.style.position = 'absolute';
-					var posHintX=cellSize*x;//((e.pageX+wHint)>window.innerWidth?(window.innerWidth-wHint):e.pageX);
-					var posHintY=cellSize*y;//((e.pageY+hHint)>window.innerHeight?(window.innerHeight-hHint):e.pageY);
-					hint.style.left = posHintX+'px';
-					console.log(''+(e.pageY+hHint)+'>'+window.innerHeight);
-					hint.style.top = posHintY+'px';
-					// hint.style.zIndex=100;
-					hint.id = 'hint';
-					//document.getElementById('maincontecst').appendChild(hint);
-					var contextHint = hint.getContext("2d");
-					// contextHint.fillStyle = 'white';
-					// contextHint.strokeStyle = 'white';
-					// contextHint.beginPath();
-					// contextHint.moveTo(step*3,step);
-					// contextHint.quadraticCurveTo(step,step,step,step*2+step/2);
-					// contextHint.quadraticCurveTo(step,step*4,step*2,step*4);
-					// contextHint.quadraticCurveTo(step*2,step*5,step+5,step*5);
-					// contextHint.quadraticCurveTo(step*2+10,step*5,step*2+5,step*4);
-					// contextHint.quadraticCurveTo(step*7,step*4,step*5,step*2+step/2);
-					// contextHint.quadraticCurveTo(step*7,step,step*3,step);
-					// contextHint.fill();
+			var wHint = (x===5)||(x===1)||(x===4)?140:100;
+			var hHint = 20;
+			var posHintX=((e.pageX+wHint+2)>window.innerWidth?(window.innerWidth-wHint-2):e.pageX);
+			var posHintY=((e.pageY+hHint+2)>window.innerHeight?(window.innerHeight-hHint-2):e.pageY);
+			if(xHint!=x){
+				removeHint();
+				xHint = x;
+			};
+			if(x===1)
+				addHint('Начать новую игру');
+			else if(x===2)
+				addHint('Отменить ход');
+			else if(x===3)
+				addHint('Открыть игру');
+			else if(x===4)
+				addHint('Сохранить игру');
+			else if(x===5)
+				addHint(flSound?'Выключить музыку':'Включить музыку');
+			else if(x===6)
+				addHint('Правила игры');
+			else removeHint()
+		}
+		else removeHint()
 
-					// contextHint.fillRect(0, 0, hint.width, hint.height); // закраска   
-					context.beginPath();
-					context.font = "bold 20px Sans";
 
-					// contextHint.textBaseline="middle";
-					// contextHint.textAlign = 'center';
-					var gradient=context.createLinearGradient(0,0,canvas.width,0);
-					gradient.addColorStop("0","magenta");
-					gradient.addColorStop("0.5","blue");
-					gradient.addColorStop("1.0","red");
-					context.fillStyle = gradient;
-					context.fillText('Начать новую игру',posHintX,posHintY);	
-				}
+		function addHint(txtHint){
+			if (!document.getElementById('hint')){
+				var hint = document.createElement('div');
+				hint.style.width=wHint+'px';
+				hint.style.height=hHint+'px';
+				hint.style.position = 'absolute';
+				hint.style.backgroundColor = baseColor;
+				hint.style.border = '1px solid '+baseColor;
+				hint.addEventListener('mousemove',removeHint);
+				hint.style.opacity = 0.5;
+				hint.style.left = posHintX+'px';
+				console.log(''+(e.pageY+hHint)+'>'+window.innerHeight);
+				hint.style.top = posHintY+'px';
+				hint.id = 'hint';
+				document.getElementById('maincontecst').appendChild(hint);
+				var hintTXT = document.createElement('span');
+				hintTXT.style.font= "bold 15px Sans";
+				hintTXT.style.color = 'darkblue';
+				hintTXT.textContent = txtHint;
+				hintTXT.style.opacity = 1;
+				hint.appendChild(hintTXT);
 			}
-			else
-				if (document.getElementById('hint'))
-					document.getElementById('maincontecst').removeChild(document.getElementById('hint'))
 		}
 
+		function removeHint(){
+			if (document.getElementById('hint'))
+				document.getElementById('maincontecst').removeChild(document.getElementById('hint'))
+		}
 	};
+
 
 	function str0l(val,len) {
 		var strVal=val.toString();
@@ -247,8 +265,9 @@ function init(wCount, hCount, rCount) {
 		// console.log(canvas.width);
 		context.textBaseline="middle";
 		context.textAlign = 'center';
-		context.fillStyle = baseColor; // or whatever color the background is.
-		context.fillText(oldTimer, posTimer,canvas.height-hfuter/2);
+		context.fillStyle = baseColor;
+		//context.fillText(oldTimer, posTimer-2,canvas.height-hfuter/2-2);
+		context.fillRect(posTimer-cellSize,canvas.height-hfuter/2-10,cellSize*2-4,hfuter/2);
 		// console.log(canvas.height);
 		context.fillStyle = '#070449'; // or whatever color the text should be.
 		context.fillText(timerTXT, posTimer,canvas.height-hfuter/2);	
@@ -997,7 +1016,8 @@ function L5()
 		context.fillStyle = baseColor; // or whatever color the background is.
 		context.textBaseline="middle";
 		context.textAlign = 'start';
-		context.fillText(oldText, pointsNow,hfuter/2);
+		//context.fillText(oldText, pointsNow,hfuter/2);
+		context.fillRect(0,0,cellSize*3,hfuter-2);
 		context.fillStyle = '#000000'; // or whatever color the text should be.
 		context.fillText(pointsTXT, pointsNow,hfuter/2);	
 		// console.log(''+pointsTXT+', '+pointsNow);
