@@ -8,33 +8,41 @@ var baseColor="#585555";
 var baseGrad = '#969696';
 var ballGrad = "#d3d3d3";//'#e2d6d6';
 var cellSize;
+var timer = null;
 var timerHMS=0;
+var timerGame;
+var timerLoser;
 var sizeNextball;
 var lenLine = 5;
 var allColor = 7;
 var flSound = true;
 var Colors = {};
+var field;
 Colors.names = {
 	blue: "#0000ff",
 	darkblue: "#00008b",
 	fuchsia: "#ff00ff",
-	green: "#008000",
+	green: "#08b134",
 	orange: "#ffa500",
 	violet: "#800080",
 	red: "#ff0000"
-};
+		// 	case 1: return '#c70b2f';
+		// 	case 2: return '#120aaa';
+		// 	case 3: return '#08b134';
+		// 	case 4: return '#e6be34';
+		// 	case 5: return '#6e08a3';
+	};
 //инициализация
 function init(wCount, hCount, rCount) {   
-	cellSize = Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount);//60
-	sizeNextball = cellSize-20;
+	cellSize = Math.floor(Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount));//60
+	sizeNextball = Math.floor(cellSize*2/3);
     canvas = document.getElementById("ColorLines2021");
 	
 	canvas.width = cellSize*wCount; 	// ширина
 	canvas.height = cellSize*hCount+hfuter+hheader;	// высота
-	// console.log(''+canvas.width+' - '+canvas.height);
-
+	
 	var context = canvas.getContext("2d");
-	var field = new L5(); // создаём объект 
+	field = new L5(); // создаём объект 
 	field.setParams(wCount, hCount, rCount);
 
 
@@ -50,6 +58,19 @@ function init(wCount, hCount, rCount) {
 	//работа меню
 
 	function showMenu(x){
+		function addNewButton(nameButton){
+			var butOknewGame = document.createElement('BUttON');
+			butOknewGame.style.width=50+'px';
+			butOknewGame.style.height=50+'px';
+			butOknewGame.style.borderRadius='50%';
+			butOknewGame.style.border='1px solid'+baseGrad;
+			butOknewGame.style.backgroundColor = baseGrad;
+			butOknewGame.style.margin = '20px';
+			butOknewGame.textContent = nameButton;
+			fieldBut.appendChild(butOknewGame);
+			return butOknewGame
+		};
+
 		if(x===6){
 			//info
 			var info=document.createElement('DIV');
@@ -114,52 +135,58 @@ function init(wCount, hCount, rCount) {
 		}
 		else if(x===1){
 			var newGame=document.createElement('DIV');
-			var wnewGame = canvas.width;
-			var hnewGame = 100;
-			newGame.style.width=(wnewGame-3)+'px';
-			newGame.style.height=hnewGame+'px';
 			newGame.style.border='1px solid blue';
 			newGame.style.backgroundColor = baseColor;
 			newGame.style.position = 'absolute';
 			newGame.style.display = 'flex';
-			newGame.style.left = (window.innerWidth-wnewGame)/2+'px';
-			newGame.style.top = canvas.height/2-hnewGame+'px';
+			newGame.style.flexDirection = 'column';
+			newGame.style.left = canvas.width-cellSize+'px';
+			newGame.style.padding = '20px';
+			newGame.style.top = canvas.height/4+'px';
 			newGame.id = 'newGame';
 			document.getElementById('maincontecst').appendChild(newGame);
 			var txtnewGame = document.createElement('span');
 			txtnewGame.style.font= "bold 15px Sans";
 			txtnewGame.style.color = 'darkblue';
 			txtnewGame.textContent = 'Вы действительно хотите начать новую игру?'
+			txtnewGame.style.padding = '20px';
 			newGame.appendChild(txtnewGame);
-			var butOknewGame = document.createElement('BUttON');
-			butOknewGame.style.width=50+'px';
-			butOknewGame.style.height=50+'px';
-			butOknewGame.style.borderRadius='50%';
-			butOknewGame.style.border='1px solid'+baseGrad;
-			butOknewGame.style.backgroundColor = baseGrad;
-			butOknewGame.textContent = 'Да';
-			butOknewGame.style.left = (window.innerWidth-wnewGame)/2+'px';
-			butOknewGame.style.top = hnewGame/2+'px';
-			newGame.appendChild(butOknewGame);
+			var fieldBut=document.createElement('DIV');
+			fieldBut.style.display = 'flex';
+			newGame.appendChild(fieldBut);
+
+			var butOknewGame = addNewButton('Да');
 			butOknewGame.addEventListener("click", okNewGame);
-			
-			butOknewGame = document.createElement('BUttON');
-			butOknewGame.textContent = 'Нет';
-			butOknewGame.style.width=50+'px';
-			butOknewGame.style.height=50+'px';
-			butOknewGame.style.borderRadius='50%';
-			butOknewGame.style.border='1px solid'+baseGrad;
-			butOknewGame.style.backgroundColor = baseGrad;
-			// butOknewGame.style.left = (window.innerWidth-wnewGame)/2+'px';
-			// butOknewGame.style.top = hnewGame/2+'px';
-			newGame.appendChild(butOknewGame);
-			butOknewGame.addEventListener("click", okNewGame);
-		};
+			butOknewGame = addNewButton('Нет');
+			butOknewGame.addEventListener("click", closeNewGame);
+		}
+		else if(x===2){
+			field.undoStep()
+		}
 	};
 	//начинаем новую игру
 	function okNewGame(){
-		document.getElementById('maincontecst').removeChild(document.getElementById('newGame'));
+		closeNewGame();
 
+		clearInterval(timer);
+		field = new L5(); // создаём объект 
+		field.setParams(wCount, hCount, rCount);
+	
+	
+		context.fillStyle = baseColor; // основной цвет "заливки"
+		context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
+
+		field.draw(context, cellSize);
+		timerHMS = 0;
+		clearInterval(timerGame);
+		field.drawMenu();
+		setTimer();
+		timerGame = setInterval(setTimer,1000);
+	}
+
+	//закрываем окно вопроса
+	function closeNewGame(){
+		document.getElementById('maincontecst').removeChild(document.getElementById('newGame'));
 	}
 
 	//закрываем окно инфо
@@ -175,8 +202,6 @@ function init(wCount, hCount, rCount) {
 		if((x>=0&&y>=0)&&(x<9&&y<9))
 			event(y,x); 
 		else if (y===9){
-			console.log('menu');
-			console.log(x);
 			showMenu(x)
 		}
 
@@ -188,8 +213,6 @@ function init(wCount, hCount, rCount) {
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
 		var y = Math.floor((e.pageY-hfuter)  / cellSize || 0);
 		if (y===9){
-			console.log('menu');
-			console.log(x);
 			var wHint = (x===5)||(x===1)||(x===4)?140:100;
 			var hHint = 20;
 			var posHintX=((e.pageX+wHint+2)>window.innerWidth?(window.innerWidth-wHint-2):e.pageX);
@@ -221,12 +244,8 @@ function init(wCount, hCount, rCount) {
 				hint.style.width=wHint+'px';
 				hint.style.height=hHint+'px';
 				hint.style.position = 'absolute';
-				hint.style.backgroundColor = baseColor;
-				hint.style.border = '1px solid '+baseColor;
 				hint.addEventListener('mousemove',removeHint);
-				hint.style.opacity = 0.5;
 				hint.style.left = posHintX+'px';
-				console.log(''+(e.pageY+hHint)+'>'+window.innerHeight);
 				hint.style.top = posHintY+'px';
 				hint.id = 'hint';
 				document.getElementById('maincontecst').appendChild(hint);
@@ -234,7 +253,6 @@ function init(wCount, hCount, rCount) {
 				hintTXT.style.font= "bold 15px Sans";
 				hintTXT.style.color = 'darkblue';
 				hintTXT.textContent = txtHint;
-				hintTXT.style.opacity = 1;
 				hint.appendChild(hintTXT);
 			}
 		}
@@ -262,13 +280,11 @@ function init(wCount, hCount, rCount) {
 		var timerS = parseInt(timerHMS%60);		
 		var timerTXT = str0l(timerH,2) + ':' + str0l(timerM,2) + ':' + str0l(timerS,2);
 		var posTimer = cellSize*8;//6 пунктов меню+первый пустой
-		// console.log(canvas.width);
 		context.textBaseline="middle";
 		context.textAlign = 'center';
 		context.fillStyle = baseColor;
 		//context.fillText(oldTimer, posTimer-2,canvas.height-hfuter/2-2);
 		context.fillRect(posTimer-cellSize,canvas.height-hfuter/2-10,cellSize*2-4,hfuter/2);
-		// console.log(canvas.height);
 		context.fillStyle = '#070449'; // or whatever color the text should be.
 		context.fillText(timerTXT, posTimer,canvas.height-hfuter/2);	
 		oldTimer = timerTXT;	
@@ -276,7 +292,7 @@ function init(wCount, hCount, rCount) {
 	};
 	field.drawMenu();
 	setTimer();
-	setInterval(setTimer,1000);
+	timerGame = setInterval(setTimer,1000);
 
 }
 
@@ -294,15 +310,13 @@ function L5()
 	var curAsc = true;		//	подпрыгивает или падает после прыжка
 	var curI = -1;			//	строка выбранного
 	var curJ = -1;			//	столбец выбранного
-	var timer = null;
 	var self = this;
 	var points = 0;			//	очки
-
-	var mas;
+	var copypoints = 0;			//	очки
+	var copyMas = null;
 	var size;	
 	var masRandom = Array();
 	var randomCurrent = 0;
-	var oldText = '';
 	
 	//таймер для прыганья ^_^
 	self.runMultiple = function ()
@@ -321,6 +335,45 @@ function L5()
 		self.circleView(i,j,curHeight, self.getColor(mas[i][j]));
 	};
 	
+	function clearMultipleLoser(x,y)
+	{
+		self.eraseCircle(x,y);
+		let color = self.randomN();
+		context.fillStyle = self.getColor(color); 
+		context.font = "bold 20px Sans";
+		context.fillText('Игра закончена с результатом: '+points,size*x+size/2,hheader+size/2+x*size);
+	}
+
+	self.runMultipleLoser = function ()
+	{
+		for(var i=0;i<wCount;i++)
+			for(var j=0;j<hCount;j++){
+				if(curAsc) curHeight--;
+				else curHeight++;
+				
+				if(curHeight===-5) curAsc = false;
+				if(curHeight===0) curAsc = true;
+
+				
+				self.clearCell(i,j);
+				self.circleView(i,j,curHeight, self.getColor(mas[i][j]));
+			};
+		timerHMS++;
+		if(timerHMS>30){
+			clearTimeout(timerLoser);
+			timerHMS = 0;
+			let ch=1;
+			for(let i=0;i<wCount;i++)
+				for(let j=0;j<hCount;j++){
+					let now = new Date();
+					setTimeout(function () { 
+						console.log(i + ' key  ');
+						clearMultipleLoser(i,j); 
+					  }, 50*ch);
+					ch++;
+				};
+		}
+	};
 	
 	self.setParams = function(weightC, heightC, rC)
 	{
@@ -328,6 +381,7 @@ function L5()
     	wCount = weightC;	//  в ширину сколько
     	hCount = heightC;  	//  в высоту 
 		mas = new Array(hCount);
+		copyMas = new Array(hCount);
 	};
 	
 	
@@ -385,23 +439,22 @@ function L5()
 		
 		mas[curI][curJ] = curColor;	
 		for(var i = 0; i < hCount; ++i)
-			for(var j = 0; j < wCount; ++j)
+			for(var j = 0; j < wCount; ++j){
 				if(mas[i][j] === -1) mas[i][j] = 0
-				else if(mas[i][j] < 0) mas[i][j]=mas[i][j]*(-1)
-					
+				else if(mas[i][j] < 0) mas[i][j]=mas[i][j]*(-1);
+			};
 		return cool;
 	}
 	
 	self.eraseCircle = function (i,j)
 	{	
+		var now = new Date();
 		mas[i][j] = 0;
 		self.clearCell(i, j);
 	}
 	
 	self.getPoints = function(sameColorCount)
 	{
-		console.log('sameColorCount = '+sameColorCount);
-		console.log(sameColorCount*(sameColorCount-lenLine+1));
 		return sameColorCount*(sameColorCount-lenLine+1);//Math.pow(2,sameColorCount);
 
 	}
@@ -423,17 +476,10 @@ function L5()
 	
 	self.showLosingMsg = function()
 	{
-		context.beginPath();
-		context.fillStyle = "#7e7e7e";
-		context.strokeStyle = "#000";
-		context.moveTo(size*wCount+2, 0);
-    	context.fillRect(10, size*hCount/2-20, size*wCount-10, size*hCount/2+20);
-		context.stroke();
 		
-		
-		context.fillStyle = "#000"; 
-		context.font = "bold 20px Sans";
-		context.fillText('Losing with Points: '+points,20,size*hCount/2);
+		clearInterval(timerGame);
+		timerHMS = 0;
+		timerLoser = setInterval(function() {self.runMultipleLoser();}, 50);
 	}
 	
 	//проверка горизонтали
@@ -617,13 +663,10 @@ function L5()
 	self.checkLines = function (i,j)
 	{
 		var erase = false;
-		var curColorN = mas[i][j];
 		if(self.checkHorizontalLine(i,j))
 			{
 				self.eraseCircle(i,j);
 				erase = true;		
-				// self.circleView(i,j,0,self.getColor(curColorN));	
-				// mas[i][j] = curColorN;//надо проверить
 			}
 		else if(self.checkVerticalLine(i,j))
 			{	
@@ -671,16 +714,18 @@ function L5()
 			else
 			{
 				//если может пройти
-				console.log(''+curI+' '+curJ);
-				console.log(mas[i][j]);
 				if(curI != -1 && curJ != -1)
 					if(self.checkPassability(i,j))
 					{
+						//делаем копию игры
+						for(let i=0;i<wCount;i++)
+							for(let j=0;j<wCount;j++)
+								copyMas[i][j] = mas[i][j];
+						copypoints = points;
 						//ползёт
 						self.circleGo(i,j);
 						//если ничего не исчезло
 						//console.log(mas[i][j]);
-						console.log(mas);
 						if(!self.checkLines(i,j)){
 							//новые шары
 							console.log('draw next circlis now');
@@ -689,11 +734,7 @@ function L5()
 						}
 						else 
 							console.log('Убили линию');
-							console.log(mas);
 							self.drawPoints();
-					}
-					else 
-					{
 					}
 			}
 		}
@@ -702,21 +743,16 @@ function L5()
 	};
 	
 	self.drawNextCirclisNow = function(){
-		console.log(mas);
 		for(var i=0;i<wCount;i++)
 			for(var j=0;j<hCount;j++){
-				console.log('1 = '+mas[i][j]+':'+i+' - '+j);
-				console.log((mas[i][j]>10));
 				if(mas[i][j]>10){
 					mas[i][j]=mas[i][j]-10;
-					console.log('2 = '+mas[i][j]);
 					if(!self.checkLines(i,j))
 						self.circleView(i,j,0, self.getColor(mas[i][j])); 
 					else 
 						self.drawPoints();
-				}
+				};
 			};
-			console.log(mas);
 	};
 	
 	
@@ -812,13 +848,12 @@ function L5()
 	{
 		//определяем текущие координаты ячейки
 		var curX = size*x;
-		var curY = hfuter+size*y;
+		var curY = hheader+size*y;
 		// console.log(''+curX+'-'+curY);
 		//сначала заливка фоном
 		context.beginPath();
 		context.strokeStyle = "#000";
 		context.moveTo(curX, curY);
-
 		var gradient = context.createLinearGradient(curX, curY, curX+size, curY+size);
 		gradient.addColorStop(0, baseColor);
 		gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
@@ -828,7 +863,6 @@ function L5()
 		context.fillRect(curX, curY, size, size);
 		context.stroke();
 		self.cellView(curX, curY, curX+size, curY+size)
-		
     };
 	
 	//цвет для рэндомного шарика
@@ -854,10 +888,6 @@ function L5()
 		var nn = n>10?n-10:n;
 		for (var prop in Colors.names){
 			if (chC === nn ){
-				console.log(chC);
-				console.log(nn);
-				console.log(prop);
-				console.log(Colors.names[prop]);
 				return Colors.names[prop];
 			}
 			chC++;
@@ -979,7 +1009,6 @@ function L5()
 			if(mas[randi][randj]===0)
 			{
 				mas[randi][randj] = self.randomNNext();
-				console.log('mas[randi][randj] = '+mas[randi][randj]);
 				self.circleViewNext(randi,randj,0, self.getColor(mas[randi][randj])); 
 				nextColor = self.getColor(mas[randi][randj]);
 				masRandom[randomCurrent][0] = randi;
@@ -1016,12 +1045,9 @@ function L5()
 		context.fillStyle = baseColor; // or whatever color the background is.
 		context.textBaseline="middle";
 		context.textAlign = 'start';
-		//context.fillText(oldText, pointsNow,hfuter/2);
 		context.fillRect(0,0,cellSize*3,hfuter-2);
 		context.fillStyle = '#000000'; // or whatever color the text should be.
 		context.fillText(pointsTXT, pointsNow,hfuter/2);	
-		// console.log(''+pointsTXT+', '+pointsNow);
-		oldText = pointsTXT;	
 	}
 	
 	self.drawRandomCircles = function()	
@@ -1036,42 +1062,43 @@ function L5()
 		randomCurrent = 0;
 		if(loser) self.showLosingMsg();
 	}
-
-	self.drawRandomCirclesNext = function()	
-	{
+	self.drawOneRandomCircleNext = function(nextColor,i){
 		var pozNextBall = canvas.width/2-(sizeNextball*3)/2;
 		var radius = sizeNextball/4;
 		var y = 5;//смещение относительно центра футера
-		var y1NextBallMenu = hfuter/2-y-sizeNextball/2;
-		var y2NextBallMenu = hfuter/2-y+sizeNextball/2;
+		var y1NextBallMenu = hheader/2-y-sizeNextball/2;
+		var y2NextBallMenu = hheader/2-y+sizeNextball/2;
+		//рисуем ячейки для след шаров
+		var x1NextBallMenu = pozNextBall+i*sizeNextball;
+		var x2NextBallMenu = pozNextBall+(i+1)*sizeNextball;
+		context.strokeStyle = "#000000";
+		self.cellView(x1NextBallMenu,y1NextBallMenu,x2NextBallMenu,y2NextBallMenu);
+		//рисуем сам следующий шарик в меню
+
+		context.strokeStyle = nextColor;
+	
+		context.beginPath();
+		//context.moveTo(x1NextBallMenu+radius ,y1NextBallMenu+radius);
+		context.arc(x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2 ,y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2, radius , 0, 2*Math.PI);
+		//раскрашиваем градиентом
+		var gradient = context.createRadialGradient(x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2, y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2, radius,x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2-radius, y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2+5, 2);
+		gradient.addColorStop(0, nextColor);
+		gradient.addColorStop(0.5, nextColor);
+		gradient.addColorStop(1, ballGrad);//self.getDarkColor(color));
+				
+		context.fillStyle = gradient; 
+		context.fill();
+		context.stroke();
+
+	}
+	self.drawRandomCirclesNext = function()	
+	{
 		for (var i = 0; i < rNext; i++){
 			var nextColor = self.drawRandomCircleNext();	
-			
-			//рисуем ячейки для след шаров
-				var x1NextBallMenu = pozNextBall+i*sizeNextball;
-				var x2NextBallMenu = pozNextBall+(i+1)*sizeNextball;
-				context.strokeStyle = "#000000";
-				self.cellView(x1NextBallMenu,y1NextBallMenu,x2NextBallMenu,y2NextBallMenu);
-				//рисуем сам следующий шарик в меню
-
-				context.strokeStyle = nextColor;
-			
-				context.beginPath();
-				//context.moveTo(x1NextBallMenu+radius ,y1NextBallMenu+radius);
-				context.arc(x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2 ,y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2, radius , 0, 2*Math.PI);
-				//раскрашиваем градиентом
-				var gradient = context.createRadialGradient(x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2, y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2, radius,x1NextBallMenu+(x2NextBallMenu-x1NextBallMenu)/2-radius, y1NextBallMenu+(y2NextBallMenu-y1NextBallMenu)/2+5, 2);
-		
-
-
-				gradient.addColorStop(0, nextColor);
-				gradient.addColorStop(0.5, nextColor);
-				gradient.addColorStop(1, ballGrad);//self.getDarkColor(color));
-						
-				context.fillStyle = gradient; 
-				context.fill();
-				context.stroke();
-			};
+			if(nextColor===0)
+				break;
+				self.drawOneRandomCircleNext(nextColor,i)
+		};
 		//проверям, может рэндомные шары норм в линию на уничтожение встали
 		for (var i = 0; i < rNext; i++) 
 			if(self.checkLines(masRandom[i][0],masRandom[i][1]))
@@ -1100,8 +1127,10 @@ function L5()
 		for(var i = 0; i < hCount; i++)
 		{
 			mas[i] = new Array(wCount);
+			copyMas[i] = new Array(wCount);
 			for(var j = 0; j < wCount; j++)
 				mas[i][j] = 0;
+				copyMas[i][j] = 0;
 		}
 		context.strokeStyle = "#000";
 		
@@ -1117,6 +1146,34 @@ function L5()
 		self.drawRandomCircles();
 		self.drawRandomCirclesNext();
 		self.drawPoints();
-    };
-	
+	}
+
+	self.undoStep = function(){
+		console.log(mas);
+		console.log(copyMas);
+		let ch=0;
+		for(let i=0;i<wCount;i++)
+			for(let j=0;j<wCount;j++){
+				ch=+copyMas[i][j]
+			};
+		if(isNaN(ch)) return;
+		ch=0;
+		for(let i=0;i<wCount;i++)
+			for(let j=0;j<wCount;j++){
+				self.clearCell(i,j);
+				mas[i][j]=copyMas[i][j];
+				if(mas[i][j]>0)
+					if(mas[i][j]<10)
+						self.circleView(i,j,0, self.getColor(mas[i][j])); 
+					else {
+						self.circleViewNext(i,j,0, self.getColor(mas[i][j]));
+						self.drawOneRandomCircleNext(self.getColor(mas[i][j]),ch);
+						ch++;
+					}
+
+			};
+		points = copypoints;
+		self.drawPoints();
+	};
+
 }
