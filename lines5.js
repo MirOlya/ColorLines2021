@@ -16,12 +16,16 @@ var timerLoser;
 var sizeNextball;
 var lenLine = 5;
 var allColor = 7;
-var flSound = true;
+var flSound = false;
 var Colors = {};
 var field;
 var timerBlast;
-var firstSound = true;
-var audio = new Audio(); // Создаём новый элемент Audio
+var firstSound = false;
+var clickAudio = new Audio(); // Создаём новый элемент Audio
+if ( clickAudio.canPlayType("audio/mpeg")=="probably" )
+        clickAudio.src="http://fe.it-academy.by/Examples/Sounds/button-16.mp3";
+    else
+        clickAudio.src="http://fe.it-academy.by/Examples/Sounds/button-16.ogg";
 Colors.names = {
 	blue: "#0000ff",
 	darkblue: "#00008b",
@@ -50,6 +54,10 @@ function getColor(n){
 const mediaQuery760s = window.matchMedia('all and (max-width: 768px)');
 const mediaQuery760l = window.matchMedia('all and (min-width: 761px)');
 
+function clickSoundInit() {
+	clickAudio.play(); // запускаем звук
+	clickAudio.pause(); // и сразу останавливаем
+}
 //инициализация
 function init(wCount, hCount, rCount) {   
 	cellSize = Math.floor(Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount));//60
@@ -68,7 +76,7 @@ function init(wCount, hCount, rCount) {
 
 	context.fillStyle = baseColor; // основной цвет "заливки"
 	context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
-	field.draw(context, cellSize);
+	field.draw(context, cellSize, true);
 
 	
 			
@@ -76,7 +84,6 @@ function init(wCount, hCount, rCount) {
 	function event(x, y) { field.move(x, y); }
 
 	//работа меню
-
 	function showMenu(x){
 		if(x===6){
 			//info
@@ -84,15 +91,18 @@ function init(wCount, hCount, rCount) {
 			var winfo = canvas.width;
 			var hinfo = 200;
 			info.style.width=(winfo-4)+'px';
-			info.style.height=(canvas.height-hinfo/2-4)+'px';
+			info.style.height=0;
 			//info.style.overflowY = 'scroll';
 			info.style.border='1px solid blue';
 			info.style.backgroundColor = 'white';
 			info.style.position = 'absolute';
 			info.style.left = (window.innerWidth-canvas.width)/2+1+'px';
 			info.style.top = hinfo/2+'px';
-			info.id = 'info';
+			info.id = 'info'
+			var targetHeight=(canvas.height-hinfo/2-4);
+			console.log(targetHeight);
 			document.getElementById('maincontecst').appendChild(info);
+			setTimeout(function() { info.style.height=targetHeight+"px"; }, 0);
 			var butCloseInfo = document.createElement('BUttON');
 			butCloseInfo.style.width=30+'px';
 			butCloseInfo.style.height=20+'px';
@@ -144,9 +154,9 @@ function init(wCount, hCount, rCount) {
 			};
 			img.src = flSound?"music.svg":"mute.svg";
 			if(flSound&&firstSound)
-				audio.play()
+				clickAudio.play()
 			else
-				audio.pause();
+				clickAudio.pause();
 			console.log('flSound= '+flSound);
 			console.log('firstSound = '+firstSound);
 
@@ -214,7 +224,7 @@ function init(wCount, hCount, rCount) {
 		context.fillStyle = baseColor; // основной цвет "заливки"
 		context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
 
-		field.draw(context, cellSize);
+		field.draw(context, cellSize,true);
 		timerHMS = 0;
 		clearInterval(timerGame);
 		field.drawMenu();
@@ -295,8 +305,8 @@ function init(wCount, hCount, rCount) {
 		if (y===9){
 			var wHint = (x===5)||(x===1)||(x===4)?140:100;
 			var hHint = 20;
-			var posHintX=((e.pageX+wHint+2)>window.innerWidth?(window.innerWidth-wHint-2):e.pageX);
-			var posHintY=((e.pageY+hHint+2)>window.innerHeight?(window.innerHeight-hHint-2):e.pageY);
+			var posHintX=(window.innerWidth-canvas.width)/2+x*cellSize+cellSize/2;//((e.pageX+wHint+2)>window.innerWidth?(window.innerWidth-wHint-2):e.pageX);
+			var posHintY=hheader+(y+0)*cellSize+2;//((e.pageY+hHint+2)>window.innerHeight?(window.innerHeight-hHint-2):e.pageY);
 			if(xHint!=x){
 				removeHint();
 				xHint = x;
@@ -408,6 +418,26 @@ function blast(){
 		selfBlast.life = 0;
 		selfBlast.maxLife = 100;
 	};
+    function blastCellView(x1,y1,x2,y2) 
+	{
+		context.beginPath();   
+		context.lineWidth = 2;
+		context.moveTo(x1, y1);
+		context.lineTo(x2, y1);
+		context.lineTo(x2,y2);
+		context.lineTo(x1, y2);
+		context.lineTo(x1, y1);
+
+		var gradient = context.createLinearGradient(x1, y1, x2, y2);
+		gradient.addColorStop(0, baseColor);
+		gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
+		
+		context.fillStyle = gradient; 
+		context.fillRect(x1, y1, x2-x1, y2-y1);
+
+		context.stroke();
+		
+    };
 
 	Particle.prototype.drawBlast = function() {
 		var selfBlast = this;
@@ -434,6 +464,12 @@ function blast(){
 	timerBlast = setInterval(function() {
 		context.fillStyle = baseColor;
 		context.fillRect(0, hheader, canvas.width, canvas.height-hheader-hfuter);
+		//рисуем ячейки
+        for (var i = 0; i < 9; i++) 
+		{
+            for (var j = 0; j < 9; j++) 
+				blastCellView(cellSize*j, hheader+cellSize*i, cellSize*(j+1),hheader+cellSize*(i+1));
+        }
 
 		for (var i = 0; i < settings.density; i++) {           
 			if (Math.random() > 0.97) {
@@ -467,6 +503,7 @@ function L5()
 	var points = 0;			//	очки
 	var copypoints = 0;		//	очки
 	var copyMas = null;
+	var masKill;
 	var size;	
 	var masRandom = Array();
 	var randomCurrent = 0;
@@ -486,17 +523,29 @@ function L5()
 		
 		self.clearCell(i,j);
 		self.circleView(i,j,curHeight, self.getColor(mas[i][j]));
-		// if(flSound){
-		// 	soundMultiple();
-		// }
+	};
+
+	self.runMultipleLine = function (i,j)
+	{
+		if(curAsc) curHeight--;
+		else curHeight++;
+		
+		if(curHeight===-5) curAsc = false;
+		if(curHeight===0) curAsc = true;
+
+		
+		self.clearCell(i,j);
+		self.circleView(i,j,curHeight, self.getColor(mas[i][j]));
+		requestAnimationFrame(self.runMultipleLine(i,j))
 	};
 
 	function soundMultiple(){
 		if(firstSound){
-			audio.src = '20429__agfx__drop-ball-in-cup-2.wav'; // Указываем путь к звуку "клика"
-			audio.autoplay = true; // Автоматически запускаем			
-			audio.loop = true;
-			firstSound = false
+			console.log('run musik');
+			clickAudio.play();
+			clickAudio.autoplay = true; // Автоматически запускаем			
+			clickAudio.loop = true;
+			// firstSound = false
 		}
 	}
 	
@@ -547,6 +596,7 @@ function L5()
     	hCount = heightC;  	//  в высоту 
 		mas = new Array(hCount);
 		copyMas = new Array(hCount);
+		masKill = new Array(hCount);
 	};
 	
 	
@@ -613,10 +663,12 @@ function L5()
 	}
 	
 	self.eraseCircle = function (i,j)
-	{	
+	{	//надо дописать исчезновение
 		var now = new Date();
 		mas[i][j] = 0;
 		self.clearCell(i, j);
+		self.vibro(true);//вибрируем
+
 	}
 	
 	self.getPoints = function(sameColorCount)
@@ -648,6 +700,7 @@ function L5()
 		//timerLoser = setInterval(function() {self.runMultipleLoser();}, 50);
 		blast();
 		copyMas = new Array(hCount);
+		masKill = new Array(hCount);
 	}
 	
 	//проверка горизонтали
@@ -656,6 +709,7 @@ function L5()
 		var erase = false;
 		var sameColorCount = 0;
 		var jMasForErase = new Array();
+
 		
 		for(var j=jCheck+1; j < wCount; j++)
 		{
@@ -682,9 +736,13 @@ function L5()
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
-			for(var j=0; j <sameColorCount; ++j)
+			//masKill[iCheck][jCheck] = mas[iCheck][jCheck];
+			for(var j=0; j <sameColorCount; ++j){
+				masKill[iCheck][jMasForErase[j]] = mas[iCheck][jCheck];
 				self.eraseCircle(iCheck,jMasForErase[j]);
+			};
 			sameColorCount = 0;
+			console.log(masKill);
 		}
 		
 		return erase;
@@ -854,7 +912,20 @@ function L5()
 
 		return erase;
 	}
-	
+ 	self.vibro = function(longFlag) {
+        if ( navigator.vibrate ) { // есть поддержка Vibration API?
+			//есть вибро
+			console.log('есть вибро');
+            if ( !longFlag )
+                window.navigator.vibrate(100); // вибрация 100мс
+            else
+                window.navigator.vibrate([100,50,100,50,100]); // вибрация 3 раза по 100мс с паузами 50мс
+        }
+		else{
+			//нет вибро
+			console.log('нет вибро');
+		}
+    }
 	//при клике, действия с шариком
 	self.move = function (i, j)
 	{
@@ -864,8 +935,9 @@ function L5()
 
 		if(curI === i && curJ === j){
 			firstSound = false;
-			audio.pause();
+			clickAudio.pause();
 			self.clearTimer(i,j);
+			self.vibro(false);//вибрируем
 		}
 		else
 		{
@@ -887,11 +959,12 @@ function L5()
 				timer = setInterval(function() {
 					self.runMultiple();
 				}, 50);
+				self.vibro(false);//вибрируем
 			}
 			else
 			{	
 				firstSound = false;
-				audio.pause();
+				clickAudio.pause();
 				console.log('pause');
 				//если может пройти
 				if(curI != -1 && curJ != -1)
@@ -899,7 +972,7 @@ function L5()
 					{
 						//делаем копию игры
 						for(let i=0;i<wCount;i++)
-							for(let j=0;j<wCount;j++)
+							for(let j=0;j<hCount;j++)
 								copyMas[i][j] = mas[i][j];
 						copypoints = points;
 						//ползёт
@@ -914,6 +987,11 @@ function L5()
 						}
 						else 
 							console.log('Убили линию');
+							console.log(masKill);
+							//убиваем линию
+							for(let i=0;i<wCount;i++)
+								for(let j=0;j<hCount;j++)
+									masKill[i][j] = 0;
 							self.drawPoints();
 					}
 			}
@@ -983,7 +1061,7 @@ function L5()
 		gradient.addColorStop(1, baseGrad);
 		//gradient.addColorStop(1, baseGrad);//self.getDarkColor(color));
 		
-		context.fillStyle = gradient; 
+		context.fillStyle = baseColor; 
 		context.fill();
 		context.stroke();
 
@@ -1012,7 +1090,6 @@ function L5()
 			else{
 				img.src = "mute.svg";
 			};
-			console.log();
 		}
 		else if(punct===3){
 			//save
@@ -1270,20 +1347,22 @@ function L5()
 	};
 
 	// рисуем поле
-	self.draw = function(cont, s) 
+	self.draw = function(cont, s, vievCircles) 
 	{
 		context = cont;
 		size = s;
 		//поле пусто - забиваем нулями
 		for(var i = 0; i < rCount; i++)
 			masRandom[i] = new Array(2);
-		for(var i = 0; i < hCount; i++)
+		for(var i = 0; i < wCount; i++)
 		{
 			mas[i] = new Array(wCount);
 			copyMas[i] = new Array(wCount);
-			for(var j = 0; j < wCount; j++)
+			masKill[i] = new Array(wCount);
+			for(var j = 0; j < hCount; j++)
 				mas[i][j] = 0;
 				copyMas[i][j] = 0;
+				masKill[i][j] = 0;
 		}
 		context.strokeStyle = "#000";
 		
@@ -1293,12 +1372,13 @@ function L5()
             for (var j = 0; j < wCount; j++) 
 				self.cellView(size*j, hheader+size*i, size*(j+1),hheader+size*(i+1));
 
-        }
-		
-		//начальные рэндомные шары
-		self.drawRandomCircles();
-		self.drawRandomCirclesNext();
-		self.drawPoints();
+        };
+		if(vievCircles){
+			//начальные рэндомные шары
+			self.drawRandomCircles();
+			self.drawRandomCirclesNext();
+			self.drawPoints();
+		}
 	}
 
 	self.undoStep = function(){

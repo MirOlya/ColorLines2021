@@ -15,3 +15,10 @@ p{
     text-indent: 25px;
     margin-bottom: 10px;
 }
+#info{
+    -webkit-transition-duration: 1s; /* для Android */
+    transition-duration: 1s;
+    -webkit-transition-timing-function: linear; /* для Android */
+    transition-timing-function: linear;
+    overflow: hidden;
+}
