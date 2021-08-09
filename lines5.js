@@ -1,7 +1,8 @@
 "use strict";
 
-var hfuter = 60;
-var hheader = 60;
+const h = 60;
+var hfuter = h;
+var hheader = h;
 var pointsNow = 10;
 var canvas;
 var baseColor="#585555";
@@ -18,6 +19,9 @@ var allColor = 7;
 var flSound = true;
 var Colors = {};
 var field;
+var timerBlast;
+var firstSound = true;
+var audio = new Audio(); // Создаём новый элемент Audio
 Colors.names = {
 	blue: "#0000ff",
 	darkblue: "#00008b",
@@ -32,6 +36,20 @@ Colors.names = {
 		// 	case 4: return '#e6be34';
 		// 	case 5: return '#6e08a3';
 	};
+function getColor(n){
+	var chC=1;
+	var nn = n>10?n-10:n;
+	for (var prop in Colors.names){
+		if (chC === nn ){
+			return Colors.names[prop];
+		}
+		chC++;
+	};		
+
+};
+const mediaQuery760s = window.matchMedia('all and (max-width: 768px)');
+const mediaQuery760l = window.matchMedia('all and (min-width: 761px)');
+
 //инициализация
 function init(wCount, hCount, rCount) {   
 	cellSize = Math.floor(Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount));//60
@@ -39,7 +57,9 @@ function init(wCount, hCount, rCount) {
     canvas = document.getElementById("ColorLines2021");
 	
 	canvas.width = cellSize*wCount; 	// ширина
-	canvas.height = cellSize*hCount+hfuter+hheader;	// высота
+	hfuter = hfuter+window.innerHeight-(cellSize*hCount+hheader+hfuter);
+	console.log(window.innerHeight);
+	canvas.height = cellSize*hCount+hheader+hfuter;	// высота
 	
 	var context = canvas.getContext("2d");
 	field = new L5(); // создаём объект 
@@ -49,7 +69,7 @@ function init(wCount, hCount, rCount) {
 	context.fillStyle = baseColor; // основной цвет "заливки"
 	context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
 	field.draw(context, cellSize);
-	
+
 	
 			
 	// функция производит необходимые действие при клике	
@@ -58,6 +78,88 @@ function init(wCount, hCount, rCount) {
 	//работа меню
 
 	function showMenu(x){
+		if(x===6){
+			//info
+			var info=document.createElement('DIV');
+			var winfo = canvas.width;
+			var hinfo = 200;
+			info.style.width=(winfo-4)+'px';
+			info.style.height=(canvas.height-hinfo/2-4)+'px';
+			//info.style.overflowY = 'scroll';
+			info.style.border='1px solid blue';
+			info.style.backgroundColor = 'white';
+			info.style.position = 'absolute';
+			info.style.left = (window.innerWidth-canvas.width)/2+1+'px';
+			info.style.top = hinfo/2+'px';
+			info.id = 'info';
+			document.getElementById('maincontecst').appendChild(info);
+			var butCloseInfo = document.createElement('BUttON');
+			butCloseInfo.style.width=30+'px';
+			butCloseInfo.style.height=20+'px';
+			butCloseInfo.style.border='1px solid blue';
+			butCloseInfo.style.backgroundColor = 'blue';
+			butCloseInfo.textContent = 'X';
+			butCloseInfo.style.position = 'fixed';
+			butCloseInfo.style.left = (window.innerWidth-canvas.width)/2+1+'px';
+			butCloseInfo.style.top = hinfo/2+'px';
+			info.appendChild(butCloseInfo);
+			butCloseInfo.addEventListener("click", closeInfo);
+			butCloseInfo.addEventListener("touchstart", closeInfo);
+			var divFortxtinfo = document.createElement('DIV');
+			divFortxtinfo.style.width = (winfo-butCloseInfo.style.width*3)+'px';
+			divFortxtinfo.style.height =(canvas.height-hinfo)+'px';
+			divFortxtinfo.style.overflowY = 'scroll';
+			divFortxtinfo.style.margin='30px';
+			divFortxtinfo.style.padding='10px';
+			divFortxtinfo.style.position = 'absolute';
+			divFortxtinfo.style.left = '30px';
+			divFortxtinfo.style.top = '0px';
+			divFortxtinfo.style.textAlign='justify';
+			info.appendChild(divFortxtinfo);
+			var txtinfo = document.createElement('div');
+			txtinfo.innerHTML='<H3 style="text-Align:center;">ПРАВИЛА ИГРЫ</H3><br>'+
+			'<p>Игра происходит на квадратном поле в 9×9 клеток и представляет собой серию ходов. Каждый ход сначала компьютер в случайные клетки выставляет три шарика случайных цветов, последних всего 7. Далее делает ход игрок, когда он может передвинуть любой шарик в другую свободную клетку, но при этом между начальной и конечной клетками должен существовать недиагональный путь из свободных клеток. Если после перемещения получается так, что собирается пять шариков одного цвета в линию по горизонтали, вертикали или диагонали, то все такие шарики (которых может быть больше 5), исчезают и игроку даётся возможность сделать ещё одно перемещение шарика. Если после перемещения линии не выстраивается, то ход заканчивается, и начинается новый с появлением новых шариков. Если при появлении новых шариков собирается линия, то она исчезает, игрок получает очки, но дополнительного перемещения не даётся. Игра продолжается до тех пор, пока все поле не будет заполнено шариками и игрок не сможет сделать ход.'+ "<br>"+
+			'<p>Цель игры состоит в наборе максимального количества очков. Счёт устроен таким образом, что при удалении за одно перемещение большего числа шариков чем 5 игрок получает существенно больше очков. Во время игры на экране показывается три цвета шариков, которые будут выброшены на поле на следующем ходу.'+ "<br>"+
+			'<p>В классической игре на экране показано квадратное поле 9×9 клеток, в случайные клетки на котором программа выставляет три шарика разных цветов. Всего 7 возможных цветов. За один ход игрок может передвинуть один шарик, выделив его и указав его новое местоположение. Для совершения хода необходимо, чтобы между начальной и конечной клетками существовал путь из свободных клеток. Цель игры состоит в удалении максимального количества шариков, которые исчезают при выстраивании шариков одного цвета по пять и более в ряд (по горизонтали, вертикали или диагонали). При исчезновении ряда шариков новые три шарика не выставляются. В остальных случаях каждый ход выставляются новые три шарика. Игрок может видеть заранее три шарика, которые появятся в следующем ходу.'+ "<br>"+
+			'<p><ul type="circle" style="margin-left:10px;"><li>Игровое поле представляет собой квадратную сетку ячеек, в которых располагаются шары, но не более одного в каждой из них.'+ "</li>"+
+			'<li>На каждом ходу в выбранных случайным образом ячейках появляются новые шары.'+ "</li>"+
+			'<li>Игрок с помощью "мыши" должен переместить один из шаров в свободную ячейку, стараясь выстраивать из одинаковых шаров непрерывные горизонтальные, вертикальные или диагональные линии.'+ "</li>"+
+			'<li>Если после перемещения или появления шара линия достигнет заданной длины, то все шары, входящие в нее, удаляются. При этом игрок набирает определенное количество очков.'+ "</li>"+
+			'<li>Перемещение шара из исходной ячейки в "ячейку назначения" допускается, если существует путь, проходящий по свободным ячейкам, расположенным рядом друг с другом по вертикали или по горизонтали.'+ "</li>"+
+			'<li>Если после перемещения шара была удалена линия, то на следующем ходу новые шары, которые должны были бы появиться в соответствии с п.2, не появляются.'+ "</li>"+
+			'<li>Игра заканчивается, когда на игровом поле не остается свободных ячеек – они все заполнены шарами.'+ "</li>"+
+			'<li>Цель игры - набрать как можно больше очков, которые запоминаются в соответствующей таблице.'+ "</li>"+
+			'<li>В игре используется “шкала ценностей”. При этом количество очков, которые получает игрок при составлении линии шаров, вычисляется (при n ³ k ) по формуле q = n ×(n - k +1) (n – количество выстроенных в линию шаров, k –минимальное количество удаляемых шаров, q – получаемые очки).'+ "</li>"+
+			'<li>В любой момент игры на экран выводится подсказка о шарах, которые появятся на следующем шаге. Эти подсказки отображаются на поле в виде уменьшенных изображений шаров.</li></ul>';
+			divFortxtinfo.appendChild(txtinfo);
+		}
+		else if(x===5){
+			//включить выключить звук
+			// firstSound = true;
+			flSound = !flSound;
+			var img = new Image();
+			img.onload = function() {
+				context.drawImage(img,x*cellSize+cellSize/4, canvas.height-hfuter+cellSize/4,cellSize/2,cellSize/2);
+				// console.log('2 = '+(canvas.height-hfuter+cellSize/4));
+			};
+			img.src = flSound?"music.svg":"mute.svg";
+			if(flSound&&firstSound)
+				audio.play()
+			else
+				audio.pause();
+			console.log('flSound= '+flSound);
+			console.log('firstSound = '+firstSound);
+
+		}
+		else if(x===1){
+			createQestNewGame()
+		}
+		else if(x===2){
+			field.undoStep()
+		}
+	};
+
+	function createQestNewGame(){
 		function addNewButton(nameButton){
 			var butOknewGame = document.createElement('BUttON');
 			butOknewGame.style.width=50+'px';
@@ -70,104 +172,40 @@ function init(wCount, hCount, rCount) {
 			fieldBut.appendChild(butOknewGame);
 			return butOknewGame
 		};
+		var newGame=document.createElement('DIV');
+		newGame.style.border='1px solid blue';
+		newGame.style.backgroundColor = baseColor;
+		newGame.style.position = 'absolute';
+		newGame.style.display = 'flex';
+		newGame.style.flexDirection = 'column';
+		newGame.style.left = (window.innerWidth-canvas.width+(canvas.width-3*cellSize)/2)/2+'px';
+		newGame.style.width = canvas.width-3*cellSize+'px';
+		newGame.style.padding = '20px';
+		newGame.style.top = canvas.height/4+'px';
+		newGame.id = 'newGame';
+		document.getElementById('maincontecst').appendChild(newGame);
+		var txtnewGame = document.createElement('span');
+		txtnewGame.style.font= "bold 15px Sans";
+		txtnewGame.style.color = 'darkblue';
+		txtnewGame.textContent = 'Вы действительно хотите начать новую игру?'
+		txtnewGame.style.padding = '20px';
+		newGame.appendChild(txtnewGame);
+		var fieldBut=document.createElement('DIV');
+		fieldBut.style.display = 'flex';
+		newGame.appendChild(fieldBut);
 
-		if(x===6){
-			//info
-			var info=document.createElement('DIV');
-			var winfo = canvas.width;
-			var hinfo = 200;
-			info.style.width=(winfo-3)+'px';
-			info.style.height=(canvas.height-hinfo/2-4)+'px';
-			//info.style.overflowY = 'scroll';
-			info.style.border='1px solid blue';
-			info.style.backgroundColor = 'white';
-			info.style.position = 'absolute';
-			info.style.left = (window.innerWidth-winfo)/2+'px';
-			info.style.top = hinfo/2+'px';
-			info.id = 'info';
-			document.getElementById('maincontecst').appendChild(info);
-			var butCloseInfo = document.createElement('BUttON');
-			butCloseInfo.style.width=30+'px';
-			butCloseInfo.style.height=20+'px';
-			butCloseInfo.style.border='1px solid blue';
-			butCloseInfo.style.backgroundColor = 'blue';
-			butCloseInfo.textContent = 'X';
-			butCloseInfo.style.position = 'fixed';
-			butCloseInfo.style.left = (window.innerWidth-winfo)/2+'px';
-			butCloseInfo.style.top = hinfo/2+'px';
-			info.appendChild(butCloseInfo);
-			butCloseInfo.addEventListener("click", closeInfo);
-			var divFortxtinfo = document.createElement('DIV');
-			divFortxtinfo.style.width = (winfo-butCloseInfo.style.width*3)+'px';
-			divFortxtinfo.style.height =(canvas.height-hinfo)+'px';
-			divFortxtinfo.style.overflowY = 'scroll';
-			divFortxtinfo.style.margin='30px';
-			divFortxtinfo.style.padding='10px';
-			divFortxtinfo.style.position = 'absolute';
-			divFortxtinfo.style.left = '30px';
-			divFortxtinfo.style.top = '0px';
-			divFortxtinfo.style.textAlign='justify';
-			info.appendChild(divFortxtinfo);
-			var txtinfo = document.createElement('span');
-			txtinfo.innerHTML='Игра происходит на квадратном поле в 9×9 клеток и представляет собой серию ходов. Каждый ход сначала компьютер в случайные клетки выставляет три шарика случайных цветов, последних всего 7. Далее делает ход игрок, когда он может передвинуть любой шарик в другую свободную клетку, но при этом между начальной и конечной клетками должен существовать недиагональный путь из свободных клеток. Если после перемещения получается так, что собирается пять шариков одного цвета в линию по горизонтали, вертикали или диагонали, то все такие шарики (которых может быть больше 5), исчезают и игроку даётся возможность сделать ещё одно перемещение шарика. Если после перемещения линии не выстраивается, то ход заканчивается, и начинается новый с появлением новых шариков. Если при появлении новых шариков собирается линия, то она исчезает, игрок получает очки, но дополнительного перемещения не даётся. Игра продолжается до тех пор, пока все поле не будет заполнено шариками и игрок не сможет сделать ход.'+ "<br>"+
-			'Цель игры состоит в наборе максимального количества очков. Счёт устроен таким образом, что при удалении за одно перемещение большего числа шариков чем 5 игрок получает существенно больше очков. Во время игры на экране показывается три цвета шариков, которые будут выброшены на поле на следующем ходу.'+ "<br>"+
-			'В классической игре на экране показано квадратное поле 9×9 клеток, в случайные клетки на котором программа выставляет три шарика разных цветов. Всего 7 возможных цветов. За один ход игрок может передвинуть один шарик, выделив его и указав его новое местоположение. Для совершения хода необходимо, чтобы между начальной и конечной клетками существовал путь из свободных клеток. Цель игры состоит в удалении максимального количества шариков, которые исчезают при выстраивании шариков одного цвета по пять и более в ряд (по горизонтали, вертикали или диагонали). При исчезновении ряда шариков новые три шарика не выставляются. В остальных случаях каждый ход выставляются новые три шарика. Игрок может видеть заранее три шарика, которые появятся в следующем ходу.'+ "<br>"+
-			'Игровое поле представляет собой квадратную сетку ячеек, в которых располагаются шары, но не более одного в каждой из них.'+ "<br>"+
-			'На каждом ходу в выбранных случайным образом ячейках появляются новые шары.'+ "<br>"+
-			'Игрок с помощью "мыши" должен переместить один из шаров в свободную ячейку, стараясь выстраивать из одинаковых шаров непрерывные горизонтальные, вертикальные или диагональные линии.'+ "<br>"+
-			'Если после перемещения или появления шара линия достигнет заданной длины, то все шары, входящие в нее, удаляются. При этом игрок набирает определенное количество очков.'+ "<br>"+
-			'Перемещение шара из исходной ячейки в "ячейку назначения" допускается, если существует путь, проходящий по свободным ячейкам, расположенным рядом друг с другом по вертикали или по горизонтали.'+ "<br>"+
-			'Если после перемещения шара была удалена линия, то на следующем ходу новые шары, которые должны были бы появиться в соответствии с п.2, не появляются.'+ "<br>"+
-			'Игра заканчивается, когда на игровом поле не остается свободных ячеек – они все заполнены шарами.'+ "<br>"+
-			'Цель игры - набрать как можно больше очков, которые запоминаются в соответствующей таблице.'+ "<br>"+
-			'В игре используется “шкала ценностей”. При этом количество очков, которые получает игрок при составлении линии шаров, вычисляется (при n ³ k ) по формуле q = n ×(n - k +1) (n – количество выстроенных в линию шаров, k –минимальное количество удаляемых шаров, q – получаемые очки).'+ "<br>"+
-			'В любой момент игры на экран выводится подсказка о шарах, которые появятся на следующем шаге. Эти подсказки отображаются на поле в виде уменьшенных изображений шаров.';
-			divFortxtinfo.appendChild(txtinfo);
-		}
-		else if(x===5){
-			//включить выключить звук
-			flSound = !flSound;
-			var img = new Image();
-				img.onload = function() {
-					context.drawImage(img,x*cellSize+cellSize/4, 10*cellSize+cellSize/4+4,cellSize/2,cellSize/2);
-				};
-			img.src = flSound?"music.svg":"mute.svg";
-		}
-		else if(x===1){
-			var newGame=document.createElement('DIV');
-			newGame.style.border='1px solid blue';
-			newGame.style.backgroundColor = baseColor;
-			newGame.style.position = 'absolute';
-			newGame.style.display = 'flex';
-			newGame.style.flexDirection = 'column';
-			newGame.style.left = canvas.width-cellSize+'px';
-			newGame.style.padding = '20px';
-			newGame.style.top = canvas.height/4+'px';
-			newGame.id = 'newGame';
-			document.getElementById('maincontecst').appendChild(newGame);
-			var txtnewGame = document.createElement('span');
-			txtnewGame.style.font= "bold 15px Sans";
-			txtnewGame.style.color = 'darkblue';
-			txtnewGame.textContent = 'Вы действительно хотите начать новую игру?'
-			txtnewGame.style.padding = '20px';
-			newGame.appendChild(txtnewGame);
-			var fieldBut=document.createElement('DIV');
-			fieldBut.style.display = 'flex';
-			newGame.appendChild(fieldBut);
-
-			var butOknewGame = addNewButton('Да');
-			butOknewGame.addEventListener("click", okNewGame);
-			butOknewGame = addNewButton('Нет');
-			butOknewGame.addEventListener("click", closeNewGame);
-		}
-		else if(x===2){
-			field.undoStep()
-		}
-	};
+		var butOknewGame = addNewButton('Да');
+		butOknewGame.addEventListener("click", okNewGame);
+		butOknewGame.addEventListener("touchstart", okNewGame);
+		butOknewGame = addNewButton('Нет');
+		butOknewGame.addEventListener("click", closeNewGame);
+		butOknewGame.addEventListener("touchstart", closeNewGame);
+	}
 	//начинаем новую игру
 	function okNewGame(){
 		closeNewGame();
 
+		clearInterval(timerBlast);
 		clearInterval(timer);
 		field = new L5(); // создаём объект 
 		field.setParams(wCount, hCount, rCount);
@@ -198,7 +236,7 @@ function init(wCount, hCount, rCount) {
 	{ 
 		e = e||window.event;
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
-		var y = Math.floor((e.pageY-hfuter)  / cellSize || 0);
+		var y = Math.floor((e.pageY-hheader)  / cellSize || 0);//изменила
 		if((x>=0&&y>=0)&&(x<9&&y<9))
 			event(y,x); 
 		else if (y===9){
@@ -207,11 +245,53 @@ function init(wCount, hCount, rCount) {
 
 	};
 	var xHint = 0;
-	canvas.onmousemove = function(e) //onmousemove
+	canvas.addEventListener('mousemove',hints);
+	function handleTabletChange(e) {
+		e = e||window.event;
+		if (e.matches) {
+		  canvas.removeEventListener('mousemove',hints);
+		  var mainC = document.getElementById('maincontecst');
+		  mainC.width = canvas.width;
+		  mainC.height = canvas.height;
+		  console.log('Media Query Matched!')
+		}
+	  };
+	  function handleChange(e) {
+		e = e||window.event;
+		if (e.matches) {
+		  canvas.addEventListener('mousemove',hints);
+		  var mainC = document.getElementById('maincontecst');
+		  mainC.width = '100%';
+		  mainC.height = '100%';
+		  console.log('Media Query Matched!')
+		}
+	  };
+     mediaQuery760s.addListener(handleTabletChange);
+     mediaQuery760l.addListener(handleChange);
+
+	 document.addEventListener("DOMContentLoaded", function(event) { 
+        /*ПОЛУЧАЕТ ТЕКУЩУЮ ШИРИНУ ЭКРАНА*/
+        var widthWind = document.querySelector('body').offsetWidth;
+        if (widthWind <= 760) {
+			canvas.removeEventListener('mousemove',hints);
+			var mainC = document.getElementById('maincontecst');
+			mainC.width = canvas.width;
+			mainC.height = canvas.height;
+		  }
+		else{
+			canvas.addEventListener('mousemove',hints);
+			var mainC = document.getElementById('maincontecst');
+			mainC.width = '100%';
+			mainC.height = '100%';
+		}
+});
+	 // handleTabletChange(mediaQuery)
+	  
+	function hints(e) //onmousemove
 	{ 
 		e = e||window.event;
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
-		var y = Math.floor((e.pageY-hfuter)  / cellSize || 0);
+		var y = Math.floor((e.pageY-hheader)  / cellSize || 0);//изменила
 		if (y===9){
 			var wHint = (x===5)||(x===1)||(x===4)?140:100;
 			var hHint = 20;
@@ -270,7 +350,6 @@ function init(wCount, hCount, rCount) {
 			strVal='0'+strVal;
 		return strVal;
 	};
-	var oldTimer = '00:00:00';
 
 	function setTimer(){
 		context.beginPath();
@@ -279,21 +358,95 @@ function init(wCount, hCount, rCount) {
 		var timerM = parseInt((timerHMS/60)%60);
 		var timerS = parseInt(timerHMS%60);		
 		var timerTXT = str0l(timerH,2) + ':' + str0l(timerM,2) + ':' + str0l(timerS,2);
-		var posTimer = cellSize*8;//6 пунктов меню+первый пустой
+		var posXTimer = cellSize*(wCount-1);//6 пунктов меню+первый пустой
+		// var posYTimer = canvas.height-hfuter/2;//6 пунктов меню+первый пустой
+		var posYTimer = hheader/2;//6 пунктов меню+первый пустой
 		context.textBaseline="middle";
 		context.textAlign = 'center';
 		context.fillStyle = baseColor;
-		//context.fillText(oldTimer, posTimer-2,canvas.height-hfuter/2-2);
-		context.fillRect(posTimer-cellSize,canvas.height-hfuter/2-10,cellSize*2-4,hfuter/2);
+		// if(hfuter>h+1){
+		// 	posXTimer = cellSize*Math.floor(wCount/2);
+		// 	posYTimer = canvas.height-hfuter+cellSize+10;
+		// };
+		context.fillRect(posXTimer-cellSize,posYTimer-10,cellSize*2+10,hfuter/2);
 		context.fillStyle = '#070449'; // or whatever color the text should be.
-		context.fillText(timerTXT, posTimer,canvas.height-hfuter/2);	
-		oldTimer = timerTXT;	
+		context.fillText(timerTXT, posXTimer,posYTimer);	
 		timerHMS++;
 	};
 	field.drawMenu();
 	setTimer();
 	timerGame = setInterval(setTimer,1000);
 
+}
+
+
+function blast(){
+	var context = canvas.getContext("2d");
+	var posX = 20,
+		posY = canvas.height / 2;
+	// начальные параметры
+	var particles = {},
+		particleIndex = 0,
+		settings = {
+		density: 20,
+		particleSize: 10,
+		startingX: canvas.width / 2,
+		startingY: hheader+40,
+		gravity: 0.5
+		};
+	// создание шариков
+	function Particle() {
+		var selfBlast = this;
+		selfBlast.x = settings.startingX;
+		selfBlast.y = settings.startingY;
+		selfBlast.vx = Math.random() * 20 - 10;
+		selfBlast.vy = Math.random() * 20 - 5;
+		// добавление нового шарика
+		particleIndex ++;
+		particles[particleIndex] = selfBlast;
+		selfBlast.id = particleIndex;
+		selfBlast.life = 0;
+		selfBlast.maxLife = 100;
+	};
+
+	Particle.prototype.drawBlast = function() {
+		var selfBlast = this;
+		selfBlast.x += selfBlast.vx;
+		if((selfBlast.y + selfBlast.vy<canvas.height-hheader-settings.particleSize)&&(selfBlast.y + selfBlast.vy>hheader-settings.particleSize))
+			selfBlast.y += selfBlast.vy;
+		selfBlast.vy += settings.gravity;
+		selfBlast.life++;
+
+		if (selfBlast.life >= selfBlast.maxLife) {
+			delete particles[selfBlast.id];
+		}
+		// создание фигур
+		context.clearRect(settings.leftWall, settings.groundLevel, canvas.width, canvas.height);
+		context.beginPath();
+		context.fillStyle=getColor(Math.floor(Math.random()*(allColor-1+1))+1);//"#f00";
+		context.arc(selfBlast.x, selfBlast.y, settings.particleSize, 0, Math.PI*2, true); 
+		//console.log(''+selfBlast.x+', '+selfBlast.y+', '+ settings.particleSize);
+		context.closePath();
+		context.fill();
+		
+	};
+	var ch=0;
+	timerBlast = setInterval(function() {
+		context.fillStyle = baseColor;
+		context.fillRect(0, hheader, canvas.width, canvas.height-hheader-hfuter);
+
+		for (var i = 0; i < settings.density; i++) {           
+			if (Math.random() > 0.97) {
+					new Particle();
+			}
+		}
+		for (var i in particles) {
+			particles[i].drawBlast();
+			// ch++;
+			// if(ch===1000)
+			// 	clearInterval(timerBlast);
+			}
+	}, 30);
 }
 
 function L5() 
@@ -312,7 +465,7 @@ function L5()
 	var curJ = -1;			//	столбец выбранного
 	var self = this;
 	var points = 0;			//	очки
-	var copypoints = 0;			//	очки
+	var copypoints = 0;		//	очки
 	var copyMas = null;
 	var size;	
 	var masRandom = Array();
@@ -333,7 +486,19 @@ function L5()
 		
 		self.clearCell(i,j);
 		self.circleView(i,j,curHeight, self.getColor(mas[i][j]));
+		// if(flSound){
+		// 	soundMultiple();
+		// }
 	};
+
+	function soundMultiple(){
+		if(firstSound){
+			audio.src = '20429__agfx__drop-ball-in-cup-2.wav'; // Указываем путь к звуку "клика"
+			audio.autoplay = true; // Автоматически запускаем			
+			audio.loop = true;
+			firstSound = false
+		}
+	}
 	
 	function clearMultipleLoser(x,y)
 	{
@@ -394,6 +559,7 @@ function L5()
 		self.clearCell(i,j);
 		self.circleView(i,j,0, self.getColor(mas[i][j]));
 		clearInterval(timer);
+		// firstSound = true;
 	}
 	
 	
@@ -474,12 +640,14 @@ function L5()
 		return loser;
 	}
 	
-	self.showLosingMsg = function()
+	self.showLosingMsg = function()//конец игру
 	{
 		
 		clearInterval(timerGame);
 		timerHMS = 0;
-		timerLoser = setInterval(function() {self.runMultipleLoser();}, 50);
+		//timerLoser = setInterval(function() {self.runMultipleLoser();}, 50);
+		blast();
+		copyMas = new Array(hCount);
 	}
 	
 	//проверка горизонтали
@@ -694,8 +862,11 @@ function L5()
 		
 		//если повторно на тот же шарик нажали
 
-		if(curI === i && curJ === j)
+		if(curI === i && curJ === j){
+			firstSound = false;
+			audio.pause();
 			self.clearTimer(i,j);
+		}
 		else
 		{
 			
@@ -709,10 +880,19 @@ function L5()
 					self.clearTimer(curI,curJ);
 				curI = i;
 				curJ = j;
-				timer = setInterval(function() {self.runMultiple();}, 50);
+				firstSound = true;
+				if(flSound){
+					soundMultiple();
+				};
+				timer = setInterval(function() {
+					self.runMultiple();
+				}, 50);
 			}
 			else
-			{
+			{	
+				firstSound = false;
+				audio.pause();
+				console.log('pause');
 				//если может пройти
 				if(curI != -1 && curJ != -1)
 					if(self.checkPassability(i,j))
@@ -811,19 +991,28 @@ function L5()
 		var img = new Image();
 		img.onload = function() {
 			context.drawImage(img,x1+cellSize/4, y1+cellSize/4,cellSize/2,cellSize/2);
+			//console.log('1 = '+(y1+cellSize/4));
 		};
 		if(punct===5){
 			//info
-			context.font = "30px Verdana";
-			context.strokeStyle = "#c70b2f";
-			context.lineWidth = 2;
-			context.textAlign = "center";
-			context.textBaseline="middle";
-			context.strokeText("I", x1+cellSize/2, y1+cellSize/2);
+			// context.font = "30px Verdana";
+			// context.strokeStyle = "#c70b2f";
+			// context.lineWidth = 2;
+			// context.textAlign = "center";
+			// context.textBaseline="middle";
+			// context.strokeText("I", x1+cellSize/2, y1+cellSize/2);
+			img.src = "user-guide.svg";
+			// firstSound = true;
 		}
 		else if(punct===4){
 			//sound
-			img.src = flSound?"music.svg":"mute.svg";
+			if(flSound){
+				img.src = "music.svg";
+			}
+			else{
+				img.src = "mute.svg";
+			};
+			console.log();
 		}
 		else if(punct===3){
 			//save
@@ -866,24 +1055,9 @@ function L5()
     };
 	
 	//цвет для рэндомного шарика
+
 	self.getColor = function(n)		 
 	{
-		//var rand = Math.random(); 
-		// switch(n)
-		// {
-		// 	case 1: return '#c70b2f';
-		// 	case 2: return '#120aaa';
-		// 	case 3: return '#08b134';
-		// 	case 4: return '#e6be34';
-		// 	case 5: return '#6e08a3';
-		// 	case 6: return '#6e08a3';
-		// 	case 7: return '#6e08a3';
-		// 	case 11: return '#c70b2f';
-		// 	case 12: return '#120aaa';
-		// 	case 13: return '#08b134';
-		// 	case 14: return '#e6be34';
-		// 	case 15: return '#6e08a3';
-		// }
 		var chC=1;
 		var nn = n>10?n-10:n;
 		for (var prop in Colors.names){
@@ -898,32 +1072,11 @@ function L5()
   	self.randomN = function(n)		 
 	{
 		return Math.floor(Math.random()*(allColor-1+1))+1;//случайное число от 1 до allColor
-		// var rand=Math.random(); 
-		// if(rand<0.2) 
-		// 	return 1;
-		// if(rand<0.4) 
-		// 	return 2;
-		// if(rand<0.6) 
-		// 	return 3;
-		// if(rand<0.8) 
-		// 	return 4;
-		// return 5;
 	};
 	
 	self.randomNNext = function(n)		 
 	{
-		return 10+Math.floor(Math.random()*(allColor-1+1))+1;//случайное число от 1 до allColor
-		// var rand=Math.random(); 
-		// if(rand<0.2) 
-		// 	return 11;
-		// if(rand<0.4) 
-		// 	return 12;
-		// if(rand<0.6) 
-		// 	return 13;
-		// if(rand<0.8) 
-		// 	return 14;
-		// return 15;
-		
+		return 10+self.randomN()
 	};
 	
 	//рисуем шарик 
@@ -934,9 +1087,9 @@ function L5()
 	
 		context.beginPath();
 		context.moveTo((x+0.5)*self.size+radius ,(y+0.5)*size);
-		context.arc((x+0.5)*size, (y+0.5)*size+h+hfuter, radius , 0, 2*Math.PI);
+		context.arc((x+0.5)*size, (y+0.5)*size+h+hheader, radius , 0, 2*Math.PI);
 		//раскрашиваем градиентом
-		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hfuter, radius,(x+0.5)*size+radius, (y+0.5)*size+h+hfuter-radius, radius*1.9);
+		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hheader, radius,(x+0.5)*size+radius, (y+0.5)*size+h+hheader-radius, radius*1.9);
 		gradient.addColorStop(0, color);
 		gradient.addColorStop(1, color);
 		gradient.addColorStop(0.2, ballGrad);//self.getDarkColor(color));
@@ -955,9 +1108,9 @@ function L5()
 	
 		context.beginPath();
 		context.moveTo((x+0.5)*self.size+radius ,(y+0.5)*size);
-		context.arc((x+0.5)*size, (y+0.5)*size+h+hfuter, radius , 0, 2*Math.PI);
+		context.arc((x+0.5)*size, (y+0.5)*size+h+hheader, radius , 0, 2*Math.PI);
 		//раскрашиваем градиентом
-		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hfuter, radius,(x+0.5)*size-radius, (y+0.5)*size+h+hfuter+5, 2);
+		var gradient = context.createRadialGradient((x+0.5)*size, (y+0.5)*size+h+hheader, radius,(x+0.5)*size-radius, (y+0.5)*size+h+hheader+5, 2);
 		gradient.addColorStop(0, color);
 		gradient.addColorStop(0.5, color);
 		gradient.addColorStop(1, ballGrad);//self.getDarkColor(color));
@@ -1035,7 +1188,7 @@ function L5()
 		context.fillStyle = baseColor;
 		context.strokeStyle = "#000";
 		context.moveTo(size*wCount+2, 0);
-    	context.fillRect(size*wCount+2, hfuter, size*wCount+hfuter+hheader+30, size*hCount);
+    	context.fillRect(size*wCount+2, hheader, size*wCount+hfuter+hheader+30, size*hCount);
 		context.stroke();
 
 		context.font = "bold 40px Sans";
@@ -1045,9 +1198,9 @@ function L5()
 		context.fillStyle = baseColor; // or whatever color the background is.
 		context.textBaseline="middle";
 		context.textAlign = 'start';
-		context.fillRect(0,0,cellSize*3,hfuter-2);
+		context.fillRect(0,0,cellSize*3,hheader-2);
 		context.fillStyle = '#000000'; // or whatever color the text should be.
-		context.fillText(pointsTXT, pointsNow,hfuter/2);	
+		context.fillText(pointsTXT, pointsNow,hheader/2);	
 	}
 	
 	self.drawRandomCircles = function()	
@@ -1113,7 +1266,7 @@ function L5()
 	self.drawMenu = function(){
 		var posMenu = cellSize;//canvas.width/2-(cellSize*6)/2;
 		for(var i=0;i<6;i++)
-			self.cellViewMenu(posMenu+i*cellSize,canvas.height-hheader,posMenu+(i+1)*cellSize,canvas.height-hheader+cellSize,i);
+			self.cellViewMenu(posMenu+i*cellSize,canvas.height-hfuter,posMenu+(i+1)*cellSize,canvas.height-hfuter+cellSize,i);
 	};
 
 	// рисуем поле
@@ -1138,7 +1291,7 @@ function L5()
         for (var i = 0; i < hCount; i++) 
 		{
             for (var j = 0; j < wCount; j++) 
-				self.cellView(size*j, hfuter+size*i, size*(j+1),hfuter+size*(i+1));
+				self.cellView(size*j, hheader+size*i, size*(j+1),hheader+size*(i+1));
 
         }
 		
