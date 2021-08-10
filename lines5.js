@@ -57,10 +57,68 @@ const mediaQuery760l = window.matchMedia('all and (min-width: 761px)');
 function clickSoundInit() {
 	clickAudio.play(); // запускаем звук
 	clickAudio.pause(); // и сразу останавливаем
+};
+
+//закрываем окно вопроса
+function closeNewGame(){
+	document.getElementById('maincontecst').removeChild(document.getElementById('newGame'));
 }
+
+//закрываем окно инфо
+function closeInfo(){
+	var infoDIV = document.getElementById('info');
+	setTimeout(function() {infoDIV.style.height=0+"px"; }, 0);
+	setTimeout(function() {document.getElementById('maincontecst').removeChild(infoDIV); }, 1000);
+}
+function createWindowInfo(inHTML){
+	var info=document.createElement('DIV');
+	var winfo = canvas.width;
+	var hinfo = 200;
+	info.style.width=(winfo-4)+'px';
+	info.style.height=0;
+	info.style.border='1px solid blue';
+	info.style.backgroundColor = 'white';
+	info.style.position = 'absolute';
+	info.style.left = (window.innerWidth-canvas.width)/2+1+'px';
+	info.style.top = hinfo/2+'px';
+	info.id = 'info'
+	var targetHeight=(canvas.height-hinfo/2-4);
+	console.log(targetHeight);
+	document.getElementById('maincontecst').appendChild(info);
+	setTimeout(function() { info.style.height=targetHeight+"px"; }, 0);
+	var butCloseInfo = document.createElement('BUttON');
+	butCloseInfo.style.width=30+'px';
+	butCloseInfo.style.height=20+'px';
+	butCloseInfo.style.border='1px solid blue';
+	butCloseInfo.style.backgroundColor = 'blue';
+	butCloseInfo.textContent = 'X';
+	butCloseInfo.style.position = 'fixed';
+	butCloseInfo.style.left = (window.innerWidth-canvas.width)/2+1+'px';
+	butCloseInfo.style.top = hinfo/2+'px';
+	info.appendChild(butCloseInfo);
+	butCloseInfo.addEventListener("click", closeInfo);
+	butCloseInfo.addEventListener("touchstart", closeInfo);
+	var divFortxtinfo = document.createElement('DIV');
+	divFortxtinfo.style.width = (winfo-butCloseInfo.style.width*3)+'px';
+	divFortxtinfo.style.height =(targetHeight-80)+'px';
+	divFortxtinfo.style.overflowY = 'scroll';
+	divFortxtinfo.style.margin='30px';
+	divFortxtinfo.style.padding='10px';
+	divFortxtinfo.style.position = 'absolute';
+	divFortxtinfo.style.left = '30px';
+	divFortxtinfo.style.top = '0px';
+	divFortxtinfo.style.textAlign='justify';
+	info.appendChild(divFortxtinfo);
+	var txtinfo = document.createElement('div');
+	txtinfo.innerHTML=inHTML;
+	divFortxtinfo.appendChild(txtinfo);
+};
 //инициализация
 function init(wCount, hCount, rCount) {   
 	cellSize = Math.floor(Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount));//60
+	timerHMS = 0;
+	clearInterval(timerGame);
+	clearInterval(timer);
 	sizeNextball = Math.floor(cellSize*2/3);
     canvas = document.getElementById("ColorLines2021");
 	
@@ -73,12 +131,11 @@ function init(wCount, hCount, rCount) {
 	field = new L5(); // создаём объект 
 	field.setParams(wCount, hCount, rCount);
 
-
 	context.fillStyle = baseColor; // основной цвет "заливки"
 	context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
 	field.draw(context, cellSize, true);
 
-	
+
 			
 	// функция производит необходимые действие при клике	
 	function event(x, y) { field.move(x, y); }
@@ -87,47 +144,7 @@ function init(wCount, hCount, rCount) {
 	function showMenu(x){
 		if(x===6){
 			//info
-			var info=document.createElement('DIV');
-			var winfo = canvas.width;
-			var hinfo = 200;
-			info.style.width=(winfo-4)+'px';
-			info.style.height=0;
-			//info.style.overflowY = 'scroll';
-			info.style.border='1px solid blue';
-			info.style.backgroundColor = 'white';
-			info.style.position = 'absolute';
-			info.style.left = (window.innerWidth-canvas.width)/2+1+'px';
-			info.style.top = hinfo/2+'px';
-			info.id = 'info'
-			var targetHeight=(canvas.height-hinfo/2-4);
-			console.log(targetHeight);
-			document.getElementById('maincontecst').appendChild(info);
-			setTimeout(function() { info.style.height=targetHeight+"px"; }, 0);
-			var butCloseInfo = document.createElement('BUttON');
-			butCloseInfo.style.width=30+'px';
-			butCloseInfo.style.height=20+'px';
-			butCloseInfo.style.border='1px solid blue';
-			butCloseInfo.style.backgroundColor = 'blue';
-			butCloseInfo.textContent = 'X';
-			butCloseInfo.style.position = 'fixed';
-			butCloseInfo.style.left = (window.innerWidth-canvas.width)/2+1+'px';
-			butCloseInfo.style.top = hinfo/2+'px';
-			info.appendChild(butCloseInfo);
-			butCloseInfo.addEventListener("click", closeInfo);
-			butCloseInfo.addEventListener("touchstart", closeInfo);
-			var divFortxtinfo = document.createElement('DIV');
-			divFortxtinfo.style.width = (winfo-butCloseInfo.style.width*3)+'px';
-			divFortxtinfo.style.height =(canvas.height-hinfo)+'px';
-			divFortxtinfo.style.overflowY = 'scroll';
-			divFortxtinfo.style.margin='30px';
-			divFortxtinfo.style.padding='10px';
-			divFortxtinfo.style.position = 'absolute';
-			divFortxtinfo.style.left = '30px';
-			divFortxtinfo.style.top = '0px';
-			divFortxtinfo.style.textAlign='justify';
-			info.appendChild(divFortxtinfo);
-			var txtinfo = document.createElement('div');
-			txtinfo.innerHTML='<H3 style="text-Align:center;">ПРАВИЛА ИГРЫ</H3><br>'+
+			var infoHTML='<H3 style="text-Align:center;">ПРАВИЛА ИГРЫ</H3><br>'+
 			'<p>Игра происходит на квадратном поле в 9×9 клеток и представляет собой серию ходов. Каждый ход сначала компьютер в случайные клетки выставляет три шарика случайных цветов, последних всего 7. Далее делает ход игрок, когда он может передвинуть любой шарик в другую свободную клетку, но при этом между начальной и конечной клетками должен существовать недиагональный путь из свободных клеток. Если после перемещения получается так, что собирается пять шариков одного цвета в линию по горизонтали, вертикали или диагонали, то все такие шарики (которых может быть больше 5), исчезают и игроку даётся возможность сделать ещё одно перемещение шарика. Если после перемещения линии не выстраивается, то ход заканчивается, и начинается новый с появлением новых шариков. Если при появлении новых шариков собирается линия, то она исчезает, игрок получает очки, но дополнительного перемещения не даётся. Игра продолжается до тех пор, пока все поле не будет заполнено шариками и игрок не сможет сделать ход.'+ "<br>"+
 			'<p>Цель игры состоит в наборе максимального количества очков. Счёт устроен таким образом, что при удалении за одно перемещение большего числа шариков чем 5 игрок получает существенно больше очков. Во время игры на экране показывается три цвета шариков, которые будут выброшены на поле на следующем ходу.'+ "<br>"+
 			'<p>В классической игре на экране показано квадратное поле 9×9 клеток, в случайные клетки на котором программа выставляет три шарика разных цветов. Всего 7 возможных цветов. За один ход игрок может передвинуть один шарик, выделив его и указав его новое местоположение. Для совершения хода необходимо, чтобы между начальной и конечной клетками существовал путь из свободных клеток. Цель игры состоит в удалении максимального количества шариков, которые исчезают при выстраивании шариков одного цвета по пять и более в ряд (по горизонтали, вертикали или диагонали). При исчезновении ряда шариков новые три шарика не выставляются. В остальных случаях каждый ход выставляются новые три шарика. Игрок может видеть заранее три шарика, которые появятся в следующем ходу.'+ "<br>"+
@@ -141,7 +158,7 @@ function init(wCount, hCount, rCount) {
 			'<li>Цель игры - набрать как можно больше очков, которые запоминаются в соответствующей таблице.'+ "</li>"+
 			'<li>В игре используется “шкала ценностей”. При этом количество очков, которые получает игрок при составлении линии шаров, вычисляется (при n ³ k ) по формуле q = n ×(n - k +1) (n – количество выстроенных в линию шаров, k –минимальное количество удаляемых шаров, q – получаемые очки).'+ "</li>"+
 			'<li>В любой момент игры на экран выводится подсказка о шарах, которые появятся на следующем шаге. Эти подсказки отображаются на поле в виде уменьшенных изображений шаров.</li></ul>';
-			divFortxtinfo.appendChild(txtinfo);
+			createWindowInfo(infoHTML)
 		}
 		else if(x===5){
 			//включить выключить звук
@@ -214,33 +231,9 @@ function init(wCount, hCount, rCount) {
 	//начинаем новую игру
 	function okNewGame(){
 		closeNewGame();
-
-		clearInterval(timerBlast);
-		clearInterval(timer);
-		field = new L5(); // создаём объект 
-		field.setParams(wCount, hCount, rCount);
-	
-	
-		context.fillStyle = baseColor; // основной цвет "заливки"
-		context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
-
-		field.draw(context, cellSize,true);
-		timerHMS = 0;
-		clearInterval(timerGame);
-		field.drawMenu();
-		setTimer();
-		timerGame = setInterval(setTimer,1000);
+		init(wCount, hCount, rCount);
 	}
 
-	//закрываем окно вопроса
-	function closeNewGame(){
-		document.getElementById('maincontecst').removeChild(document.getElementById('newGame'));
-	}
-
-	//закрываем окно инфо
-	function closeInfo(){
-		document.getElementById('maincontecst').removeChild(document.getElementById('info'));
-	}
 	// обрабатка кликов мыши
 	canvas.onclick = function(e) 
 	{ 
@@ -378,7 +371,7 @@ function init(wCount, hCount, rCount) {
 		// 	posXTimer = cellSize*Math.floor(wCount/2);
 		// 	posYTimer = canvas.height-hfuter+cellSize+10;
 		// };
-		context.fillRect(posXTimer-cellSize,posYTimer-10,cellSize*2+10,hfuter/2);
+		context.fillRect(posXTimer-cellSize,posYTimer-10,cellSize*2+10,hheader/2);
 		context.fillStyle = '#070449'; // or whatever color the text should be.
 		context.fillText(timerTXT, posXTimer,posYTimer);	
 		timerHMS++;
@@ -390,7 +383,7 @@ function init(wCount, hCount, rCount) {
 }
 
 
-function blast(){
+function blast(points){
 	var context = canvas.getContext("2d");
 	var posX = 20,
 		posY = canvas.height / 2;
@@ -420,6 +413,7 @@ function blast(){
 	};
     function blastCellView(x1,y1,x2,y2) 
 	{
+		context.strokeStyle = "#000";
 		context.beginPath();   
 		context.lineWidth = 2;
 		context.moveTo(x1, y1);
@@ -461,7 +455,11 @@ function blast(){
 		
 	};
 	var ch=0;
-	timerBlast = setInterval(function() {
+	var running = true;
+	requestAnimationFrame(tick);
+	setTimeout(function(){running=false},1000);
+	
+	function tick() {
 		context.fillStyle = baseColor;
 		context.fillRect(0, hheader, canvas.width, canvas.height-hheader-hfuter);
 		//рисуем ячейки
@@ -469,21 +467,134 @@ function blast(){
 		{
             for (var j = 0; j < 9; j++) 
 				blastCellView(cellSize*j, hheader+cellSize*i, cellSize*(j+1),hheader+cellSize*(i+1));
-        }
+        };
 
 		for (var i = 0; i < settings.density; i++) {           
-			if (Math.random() > 0.97) {
+			if (Math.random() > 0.77) {
 					new Particle();
 			}
 		}
-		for (var i in particles) {
+		for (var i in particles) 
 			particles[i].drawBlast();
+		if ( running )
+			requestAnimationFrame(tick);
+		else{
+			var infoHTML='<H3 style="text-Align:center;">ВАШ РЕЗУЛЬТАТ = '+points+'</H3><br>'+
+			'<p>Эту игру разработатли для ВАС'+ "<br>"+
+			'<p>PM: Пахольчук Александр<br>'+
+			'<p>QA: Ламырев Дмитрий<br>'+
+			'<p>QA: Белобородов Антон<br>'+
+			'<p>JS: Миронович Ольга<br>'+
+			'<p>(C)';
+			createWindowInfo(infoHTML);
+
 			// ch++;
 			// if(ch===1000)
 			// 	clearInterval(timerBlast);
 			}
-	}, 30);
+	};
 }
+
+function smallBlast(j,i,colorblast,mas){
+	var context = canvas.getContext("2d");
+	// var posX = 20,
+	// 	posY = canvas.height / 2;
+	i;
+	j++;
+	// начальные параметры
+	var particles = {},
+		particleIndex = 0,
+		settings = {
+		density: 20,
+		particleSize: 0.1,
+		startingX: i*cellSize+cellSize/2,//canvas.width / 2,
+		startingY: j*cellSize+cellSize/2,//hheader+40,
+		gravity: 0.5
+		};
+		// создание шариков
+	function Particle() {
+		var selfBlast = this;
+		selfBlast.x = settings.startingX;
+		selfBlast.y = settings.startingY;
+		selfBlast.vx = Math.random() * 20 -10;
+		selfBlast.vy = Math.random() * 20 - 5 ;
+		// добавление нового шарика
+		particleIndex ++;
+		particles[particleIndex] = selfBlast;
+		selfBlast.id = particleIndex;
+		selfBlast.life = 0;
+		selfBlast.maxLife = cellSize;
+	};
+
+	Particle.prototype.drawBlast = function(cBl) {
+		var selfBlast = this;
+		if((selfBlast.x + selfBlast.vx<(i+1)*cellSize-8)&&(selfBlast.x + selfBlast.vx>i*cellSize+8))//&&(selfBlast.y + selfBlast.vy <(j+1)*cellSize)&&(selfBlast.y + selfBlast.vy>j*cellSize+10)){
+			selfBlast.x += selfBlast.vx;
+		// };
+		if((selfBlast.y + selfBlast.vy <(j+1)*cellSize-8)&&(selfBlast.y + selfBlast.vy>j*cellSize+8)){
+			selfBlast.y += selfBlast.vy;
+		};
+		selfBlast.vy += settings.gravity;
+		selfBlast.xy += settings.gravity;
+		selfBlast.vy = Math.random()>0.5?-selfBlast.vy:selfBlast.vy;
+		selfBlast.vx = Math.random()>0.5?-selfBlast.vx:selfBlast.vx;
+		selfBlast.life++;
+
+		if (selfBlast.life >= selfBlast.maxLife) {
+			delete particles[selfBlast.id];
+		};
+		// создание фигур
+		context.beginPath();
+		context.fillStyle=getColor(cBl);//Math.floor(Math.random()*(allColor-1+1))+1);//"#f00";
+		var R = Math.random();
+		//context.arc(settings.startingX, settings.startingY, 5, 0, Math.PI*2, true); 
+		context.arc(selfBlast.x, selfBlast.y, R, 0, Math.PI*2, true); 
+		if(Math.random()>0.5){
+			context.fillStyle=baseGrad;
+			context.arc(selfBlast.x, selfBlast.y, R, 0, Math.PI*2, true); 
+		};
+		context.closePath();
+		context.fill();
+	};
+	var running = true;
+	requestAnimationFrame(tick);
+	setTimeout(function(){running=false},2000);
+
+	function resetField(){
+		let ch=0;
+		for(let i=0;i<9;i++)
+			for(let j=0;j<9;j++){
+				field.clearCell(i,j);
+				if(mas[i][j]>0)
+					if(mas[i][j]<10)
+						field.circleView(i,j,0, field.getColor(mas[i][j])); 
+					else {
+						field.circleViewNext(i,j,0, field.getColor(mas[i][j]));
+						field.drawOneRandomCircleNext(field.getColor(mas[i][j]),ch);
+						ch++;
+					}
+
+			};
+		field.drawPoints();
+	}
+	function tick() {
+		for (var k = 0; k < settings.density; k++) {           
+			if (Math.random()*10 > 9.9) {
+					new Particle();
+			}
+		};
+		for (var k in particles) {
+			particles[k].drawBlast(colorblast);
+		};
+		if ( running )
+			requestAnimationFrame(tick);
+		else
+			resetField()
+	};
+}
+
+
+
 
 function L5() 
 {
@@ -698,7 +809,7 @@ function L5()
 		clearInterval(timerGame);
 		timerHMS = 0;
 		//timerLoser = setInterval(function() {self.runMultipleLoser();}, 50);
-		blast();
+		blast(points);
 		copyMas = new Array(hCount);
 		masKill = new Array(hCount);
 	}
@@ -709,6 +820,7 @@ function L5()
 		var erase = false;
 		var sameColorCount = 0;
 		var jMasForErase = new Array();
+		var colorBlast = mas[iCheck][jCheck];
 
 		
 		for(var j=jCheck+1; j < wCount; j++)
@@ -736,9 +848,8 @@ function L5()
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
-			//masKill[iCheck][jCheck] = mas[iCheck][jCheck];
 			for(var j=0; j <sameColorCount; ++j){
-				masKill[iCheck][jMasForErase[j]] = mas[iCheck][jCheck];
+				smallBlast(iCheck,jMasForErase[j],colorBlast,mas);
 				self.eraseCircle(iCheck,jMasForErase[j]);
 			};
 			sameColorCount = 0;
@@ -757,6 +868,7 @@ function L5()
 		var erase = false;
 		var sameColorCount = 0;
 		var iMasForErase = new Array();
+		var colorBlast = mas[iCheck][jCheck];
 		
 		for(var i=iCheck+1; i < hCount; i++)
 		{
@@ -783,8 +895,13 @@ function L5()
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
-			for(var i=0; i <sameColorCount; ++i)
-				self.eraseCircle(iMasForErase[i],jCheck);
+			for(var i=0; i <sameColorCount; ++i){
+				smallBlast(iMasForErase[i],jCheck,colorBlast,mas);
+				self.eraseCircle(iMasForErase[i],jCheck)
+				// setTimeout(() => {
+				// 	self.eraseCircle(iMasForErase[i],jCheck)
+				// }, 1);
+			};
 			sameColorCount = 0;
 		}
 		
@@ -797,6 +914,7 @@ function L5()
 		var erase = false;
 		var sameColorCount = 0;
 		var iMasForErase = new Array();
+		var colorBlast = mas[iCheck][jCheck];
 		var yi = 1;
 		for(var i=iCheck+1; i < hCount; i++)
 		{
@@ -829,8 +947,10 @@ function L5()
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
-			for(var i=0; i <sameColorCount; ++i)
+			for(var i=0; i <sameColorCount; ++i){
+				smallBlast(iMasForErase[i]['i'],iMasForErase[i]['j'],colorBlast,mas);
 				self.eraseCircle(iMasForErase[i]['i'],iMasForErase[i]['j']);
+			};
 			sameColorCount = 0;
 		}
 
@@ -844,6 +964,7 @@ function L5()
 		var erase = false;
 		var sameColorCount = 0;
 		var iMasForErase = new Array();
+		var colorBlast = mas[iCheck][jCheck];
 		var yi = 1;
 		for(var i=iCheck+1; i < hCount; i++)
 		{
@@ -876,9 +997,11 @@ function L5()
 		{
 			erase = true;
 			points += self.getPoints(sameColorCount);
-			for(var i=0; i <sameColorCount; ++i)
+			for(var i=0; i <sameColorCount; ++i){
+				smallBlast(iMasForErase[i]['i'],iMasForErase[i]['j'],colorBlast,mas);
 				self.eraseCircle(iMasForErase[i]['i'],iMasForErase[i]['j']);
-				sameColorCount = 0;
+			};
+			sameColorCount = 0;
 		}
 
 		
@@ -889,9 +1012,11 @@ function L5()
 	self.checkLines = function (i,j)
 	{
 		var erase = false;
+		var colorBlast = mas[i][j];
 		if(self.checkHorizontalLine(i,j))
-			{
-				self.eraseCircle(i,j);
+			{	
+				// smallBlast(i,j,colorBlast);
+				//self.eraseCircle(i,j);
 				erase = true;		
 			}
 		else if(self.checkVerticalLine(i,j))
@@ -1073,14 +1198,7 @@ function L5()
 		};
 		if(punct===5){
 			//info
-			// context.font = "30px Verdana";
-			// context.strokeStyle = "#c70b2f";
-			// context.lineWidth = 2;
-			// context.textAlign = "center";
-			// context.textBaseline="middle";
-			// context.strokeText("I", x1+cellSize/2, y1+cellSize/2);
 			img.src = "user-guide.svg";
-			// firstSound = true;
 		}
 		else if(punct===4){
 			//sound
@@ -1382,8 +1500,6 @@ function L5()
 	}
 
 	self.undoStep = function(){
-		console.log(mas);
-		console.log(copyMas);
 		let ch=0;
 		for(let i=0;i<wCount;i++)
 			for(let j=0;j<wCount;j++){
