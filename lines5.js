@@ -5,8 +5,8 @@ var hfuter = h;
 var hheader = h;
 var pointsNow = 10;
 var canvas;
-var baseColor="#585555";
-var baseGrad = '#969696';
+var baseColor="#c3bc9c";//"#585555";
+var baseGrad = "#c3bc9c";//'#969696';
 var ballGrad = "#d3d3d3";//'#e2d6d6';
 var cellSize;
 var timer = null;
@@ -16,36 +16,52 @@ var timerLoser;
 var sizeNextball;
 var lenLine = 5;
 var allColor = 7;
-var flSound = false;
-var Colors = {};
+var flSound = true;
+var colors = {};
 var field;
 var timerBlast;
 var firstSound = false;
-var clickAudio = new Audio(); // Создаём новый элемент Audio
-if ( clickAudio.canPlayType("audio/mpeg")=="probably" )
-        clickAudio.src="http://fe.it-academy.by/Examples/Sounds/button-16.mp3";
-    else
-        clickAudio.src="http://fe.it-academy.by/Examples/Sounds/button-16.ogg";
-Colors.names = {
-	blue: "#0000ff",
-	darkblue: "#00008b",
-	fuchsia: "#ff00ff",
-	green: "#08b134",
-	orange: "#ffa500",
-	violet: "#800080",
-	red: "#ff0000"
-		// 	case 1: return '#c70b2f';
-		// 	case 2: return '#120aaa';
-		// 	case 3: return '#08b134';
-		// 	case 4: return '#e6be34';
-		// 	case 5: return '#6e08a3';
-	};
+var fontPoints = "bold 30px Sans";
+var clickAudio = new Audio();
+var blastAudio = new Audio();
+var clickAudiosrc;
+var blastAudiosrc;
+if ( clickAudio.canPlayType("audio/mpeg")=="probably" ){
+	clickAudiosrc="http://fe.it-academy.by/Examples/Sounds/button-16.mp3";
+	// blastAudiosrc="http://fe.it-academy.by/Sites/0035589/blast.mp3";
+	blastAudiosrc="blast.mp3";
+}
+else{
+    clickAudiosrc="http://fe.it-academy.by/Examples/Sounds/button-16.ogg";
+	blastAudio.src="";
+};
+colors.names = {
+yellow: "#f5e468",
+orange: "#e17733",
+red: "#bc3934",
+violet: "#7637b9",
+darkblue: "#3977c5",
+blue: "#8af2eb",
+green: "#03845a"
+// blue: "#0000ff",
+// darkblue: "#00008b",
+// fuchsia: "#ff00ff",
+// green: "#08b134",
+// orange: "#ffa500",
+// violet: "#800080",
+// red: "#ff0000"
+};
+var ajaxHandlerScript="https://fe.it-academy.by/AjaxStringStorage2.php";
+var updatePassword;
+var stringName='MIRONOVICH_LINES2021_';
+
+
 function getColor(n){
 	var chC=1;
 	var nn = n>10?n-10:n;
-	for (var prop in Colors.names){
+	for (var prop in colors.names){
 		if (chC === nn ){
-			return Colors.names[prop];
+			return colors.names[prop];
 		}
 		chC++;
 	};		
@@ -53,10 +69,34 @@ function getColor(n){
 };
 const mediaQuery760s = window.matchMedia('all and (max-width: 768px)');
 const mediaQuery760l = window.matchMedia('all and (min-width: 761px)');
+var isTablet;
 
 function clickSoundInit() {
-	clickAudio.play(); // запускаем звук
-	clickAudio.pause(); // и сразу останавливаем
+	clickAudio.src = clickAudiosrc;
+
+	var playPromise = clickAudio.play();
+
+	if (playPromise !== undefined) {
+	  playPromise.then(_ => {
+		clickAudio.pause();
+	  })
+	 .catch(error => {
+		 alert(error)
+	  });
+	}
+	blastAudio.src = blastAudiosrc;
+
+	playPromise = blastAudio.play();
+
+	if (playPromise !== undefined) {
+	  playPromise.then(_ => {
+		blastAudio.pause();
+	  })
+	 .catch(error => {
+		 alert(error)
+	  });
+	}
+
 };
 
 //закрываем окно вопроса
@@ -68,22 +108,88 @@ function closeNewGame(){
 function closeInfo(){
 	var infoDIV = document.getElementById('info');
 	setTimeout(function() {infoDIV.style.height=0+"px"; }, 0);
-	setTimeout(function() {document.getElementById('maincontecst').removeChild(infoDIV); }, 1000);
+	setTimeout(function() {console.log(infoDIV);if(infoDIV!=undefined) document.getElementById('maincontecst').removeChild(infoDIV);
+		}, 1000);
+	
 }
-function createWindowInfo(inHTML){
+//закрываем окно begin
+function closebegin(){
+	var infoDIV = document.getElementById('begin');
+	document.getElementById('maincontecst').removeChild(infoDIV);
+	document.getElementById('maincontecst').style.backgroundColor = 'black';
+	if(document.querySelector('body').offsetWidth>760)
+		clickSoundInit();
+	init(9,9,5);
+}
+function createWindowInfo(inHTML,isScroll){
 	var info=document.createElement('DIV');
 	var winfo = canvas.width;
 	var hinfo = 200;
-	info.style.width=(winfo-4)+'px';
+	info.style.width=(winfo-2)+'px';
 	info.style.height=0;
 	info.style.border='1px solid blue';
 	info.style.backgroundColor = 'white';
 	info.style.position = 'absolute';
-	info.style.left = (window.innerWidth-canvas.width)/2+1+'px';
+	info.style.left = (window.innerWidth-canvas.width)/2+'px';
 	info.style.top = hinfo/2+'px';
 	info.id = 'info'
+	info.addEventListener('touchstart', handleTouchStart, false);
+	info.addEventListener('touchmove', handleTouchMove, false);
+
+
+		var xDown = null;
+		var yDown = null;
+		
+		function getTouches(evt) {
+		return evt.touches || // чистый API JS
+		evt.originalEvent.touches; // jQuery
+		}
+		
+		function handleTouchStart(evt) {
+			const firstTouch = getTouches(evt)[0];
+			xDown = firstTouch.clientX;
+			yDown = firstTouch.clientY;
+		};
+		
+		function handleTouchMove(evt) {
+			if ( ! xDown || ! yDown ) {
+			return;
+			}
+		
+			var xUp = evt.touches[0].clientX;
+			var yUp = evt.touches[0].clientY;
+			
+			var xDiff = xDown - xUp;
+			var yDiff = yDown - yUp;
+			
+			if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/* отлавливаем разницу в движении */
+			if ( xDiff > 0 ) {
+			/* swipe влево */
+				console.log('swipe влево');
+				closeInfo();
+			} else {
+				/* swipe вправо */
+				console.log('swipe вправо');
+				closeInfo();
+				}
+			} else {
+				if ( yDiff > 0 ) {
+				/* swipe вверх */
+				console.log('swipe вверх');
+				if(!isScroll)
+					closeInfo();
+				} else {
+				/* swipe вниз */
+				console.log('swipe вниз');
+				}
+			}
+			/* свайп был, обнуляем координаты */
+			xDown = null;
+			yDown = null;
+		};
+
+
 	var targetHeight=(canvas.height-hinfo/2-4);
-	console.log(targetHeight);
 	document.getElementById('maincontecst').appendChild(info);
 	setTimeout(function() { info.style.height=targetHeight+"px"; }, 0);
 	var butCloseInfo = document.createElement('BUttON');
@@ -95,13 +201,15 @@ function createWindowInfo(inHTML){
 	butCloseInfo.style.position = 'fixed';
 	butCloseInfo.style.left = (window.innerWidth-canvas.width)/2+1+'px';
 	butCloseInfo.style.top = hinfo/2+'px';
+	butCloseInfo.id = 'butCloseInfo';
 	info.appendChild(butCloseInfo);
 	butCloseInfo.addEventListener("click", closeInfo);
 	butCloseInfo.addEventListener("touchstart", closeInfo);
 	var divFortxtinfo = document.createElement('DIV');
 	divFortxtinfo.style.width = (winfo-butCloseInfo.style.width*3)+'px';
 	divFortxtinfo.style.height =(targetHeight-80)+'px';
-	divFortxtinfo.style.overflowY = 'scroll';
+	if(isScroll)
+		divFortxtinfo.style.overflowY = 'scroll';
 	divFortxtinfo.style.margin='30px';
 	divFortxtinfo.style.padding='10px';
 	divFortxtinfo.style.position = 'absolute';
@@ -113,6 +221,42 @@ function createWindowInfo(inHTML){
 	txtinfo.innerHTML=inHTML;
 	divFortxtinfo.appendChild(txtinfo);
 };
+
+function createWindowBegin(){
+	document.getElementById('maincontecst').style.backgroundColor = 'white';
+	var begin=document.createElement('Canvas');
+	begin.style.width='5px';
+	begin.style.height='5px';
+	begin.style.border='1px solid blue';
+	begin.style.borderRadius = '50%';
+	begin.style.backgroundColor = 'blue';
+	begin.style.position = 'absolute';
+	begin.style.left = window.innerWidth/2+'px';
+	begin.style.top = window.innerHeight/2+'px';
+	begin.innerHTML = 'Начнем !';
+	begin.id = 'begin'
+	document.getElementById('maincontecst').appendChild(begin);
+	var contextbegin = begin.getContext("2d");
+	contextbegin.font = "bold 40px Sans";
+
+	contextbegin.font = fontPoints;
+	contextbegin.textBaseline="middle";
+	contextbegin.textAlign = 'center';
+	contextbegin.fillStyle = 'yellow'; 
+	contextbegin.fillText(begin.innerHTML,140,50);	
+	if(document.querySelector('body').offsetWidth<=760){
+		begin.style.width='150px';
+		begin.style.height='150px';
+		begin.style.left = window.innerWidth/2-75+'px';
+		begin.style.top = window.innerHeight/2-75+'px';
+		}
+	else{
+		begin.style.transform = 'scale(80,80) rotate(720deg)';
+	};
+	begin.addEventListener("click", closebegin);
+	begin.addEventListener("touchstart", closebegin);
+};
+
 //инициализация
 function init(wCount, hCount, rCount) {   
 	cellSize = Math.floor(Math.min(window.innerWidth/wCount,(window.innerHeight-hfuter-hheader)/hCount));//60
@@ -132,13 +276,19 @@ function init(wCount, hCount, rCount) {
 	field.setParams(wCount, hCount, rCount);
 
 	context.fillStyle = baseColor; // основной цвет "заливки"
-	context.fillRect(0, 0, canvas.width, canvas.height); // закраска   
+	context.fillRect(0, 0, canvas.width, canvas.height); // закраска 
+	var widthWind = document.querySelector('body').offsetWidth;
+	if (widthWind <= 760)
+		initTablet()
+	else
+		initFull();
 	field.draw(context, cellSize, true);
 
 
 			
 	// функция производит необходимые действие при клике	
 	function event(x, y) { field.move(x, y); }
+
 
 	//работа меню
 	function showMenu(x){
@@ -158,7 +308,7 @@ function init(wCount, hCount, rCount) {
 			'<li>Цель игры - набрать как можно больше очков, которые запоминаются в соответствующей таблице.'+ "</li>"+
 			'<li>В игре используется “шкала ценностей”. При этом количество очков, которые получает игрок при составлении линии шаров, вычисляется (при n ³ k ) по формуле q = n ×(n - k +1) (n – количество выстроенных в линию шаров, k –минимальное количество удаляемых шаров, q – получаемые очки).'+ "</li>"+
 			'<li>В любой момент игры на экран выводится подсказка о шарах, которые появятся на следующем шаге. Эти подсказки отображаются на поле в виде уменьшенных изображений шаров.</li></ul>';
-			createWindowInfo(infoHTML)
+			createWindowInfo(infoHTML,true)
 		}
 		else if(x===5){
 			//включить выключить звук
@@ -170,20 +320,37 @@ function init(wCount, hCount, rCount) {
 				// console.log('2 = '+(canvas.height-hfuter+cellSize/4));
 			};
 			img.src = flSound?"music.svg":"mute.svg";
-			if(flSound&&firstSound)
-				clickAudio.play()
-			else
-				clickAudio.pause();
-			console.log('flSound= '+flSound);
-			console.log('firstSound = '+firstSound);
+			if(!isTablet){
+				clickAudio.currentTime = 0;
+				if(flSound&&firstSound)
+					clickAudio.play()
+				else
+					clickAudio.pause();
+				console.log('flSound= '+flSound);
+				console.log('firstSound = '+firstSound);
+			};
 
 		}
 		else if(x===1){
 			createQestNewGame()
 		}
+		else if(x===4){
+			var nameGame = prompt('Введите название игры:');
+			if(nameGame)
+				field.saveGame(nameGame);
+		}
+		else if(x===3){
+			var loadGame = prompt('Введите название игры:');
+			if(loadGame)
+				field.loadSavedGame(loadGame);
+		}
 		else if(x===2){
 			field.undoStep()
 		}
+		else if(x===7){
+			field.showAllRecords()
+		}
+
 	};
 
 	function createQestNewGame(){
@@ -239,7 +406,7 @@ function init(wCount, hCount, rCount) {
 	{ 
 		e = e||window.event;
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
-		var y = Math.floor((e.pageY-hheader)  / cellSize || 0);//изменила
+		var y = Math.floor((e.pageY-hheader)  / cellSize || 0);
 		if((x>=0&&y>=0)&&(x<9&&y<9))
 			event(y,x); 
 		else if (y===9){
@@ -248,46 +415,38 @@ function init(wCount, hCount, rCount) {
 
 	};
 	var xHint = 0;
-	canvas.addEventListener('mousemove',hints);
+	//canvas.addEventListener('mousemove',hints);
+	function initTablet(){
+		fontPoints = "bold 30px Sans";
+		canvas.removeEventListener('mousemove',hints);
+		var mainC = document.getElementById('maincontecst');
+		mainC.width = canvas.width;
+		mainC.height = canvas.height;
+		console.log('Media Query Matched!');
+		isTablet = true;
+	}
+	function initFull(){
+		fontPoints = "bold 40px Sans";
+		canvas.addEventListener('mousemove',hints);
+		var mainC = document.getElementById('maincontecst');
+		mainC.width = '100%';
+		mainC.height = '100%';
+		console.log('Media Query Matched!')
+		isTablet = false;
+	}
 	function handleTabletChange(e) {
 		e = e||window.event;
-		if (e.matches) {
-		  canvas.removeEventListener('mousemove',hints);
-		  var mainC = document.getElementById('maincontecst');
-		  mainC.width = canvas.width;
-		  mainC.height = canvas.height;
-		  console.log('Media Query Matched!')
-		}
+		if (e.matches) 
+			initTablet()
 	  };
 	  function handleChange(e) {
 		e = e||window.event;
-		if (e.matches) {
-		  canvas.addEventListener('mousemove',hints);
-		  var mainC = document.getElementById('maincontecst');
-		  mainC.width = '100%';
-		  mainC.height = '100%';
-		  console.log('Media Query Matched!')
-		}
+		if (e.matches) 
+			initFull()
 	  };
      mediaQuery760s.addListener(handleTabletChange);
      mediaQuery760l.addListener(handleChange);
 
-	 document.addEventListener("DOMContentLoaded", function(event) { 
-        /*ПОЛУЧАЕТ ТЕКУЩУЮ ШИРИНУ ЭКРАНА*/
-        var widthWind = document.querySelector('body').offsetWidth;
-        if (widthWind <= 760) {
-			canvas.removeEventListener('mousemove',hints);
-			var mainC = document.getElementById('maincontecst');
-			mainC.width = canvas.width;
-			mainC.height = canvas.height;
-		  }
-		else{
-			canvas.addEventListener('mousemove',hints);
-			var mainC = document.getElementById('maincontecst');
-			mainC.width = '100%';
-			mainC.height = '100%';
-		}
-});
 	 // handleTabletChange(mediaQuery)
 	  
 	function hints(e) //onmousemove
@@ -296,10 +455,10 @@ function init(wCount, hCount, rCount) {
 		var x = Math.floor((e.pageX - (window.innerWidth-canvas.width)/2) / cellSize || 0);
 		var y = Math.floor((e.pageY-hheader)  / cellSize || 0);//изменила
 		if (y===9){
-			var wHint = (x===5)||(x===1)||(x===4)?140:100;
+			var wHint = (x===7)||(x===5)||(x===1)||(x===4)?138:100;
 			var hHint = 20;
-			var posHintX=(window.innerWidth-canvas.width)/2+x*cellSize+cellSize/2;//((e.pageX+wHint+2)>window.innerWidth?(window.innerWidth-wHint-2):e.pageX);
-			var posHintY=hheader+(y+0)*cellSize+2;//((e.pageY+hHint+2)>window.innerHeight?(window.innerHeight-hHint-2):e.pageY);
+			var posHintX=(window.innerWidth-canvas.width)/2+x*cellSize-cellSize/2;//((e.pageX+wHint+2)>window.innerWidth?(window.innerWidth-wHint-2):e.pageX);
+			var posHintY=hheader+(y+0)*cellSize-10;//((e.pageY+hHint+2)>window.innerHeight?(window.innerHeight-hHint-2):e.pageY);
 			if(xHint!=x){
 				removeHint();
 				xHint = x;
@@ -316,6 +475,8 @@ function init(wCount, hCount, rCount) {
 				addHint(flSound?'Выключить музыку':'Включить музыку');
 			else if(x===6)
 				addHint('Правила игры');
+			else if(x===7)
+				addHint('Таблица рекордов');
 			else removeHint()
 		}
 		else removeHint()
@@ -330,6 +491,9 @@ function init(wCount, hCount, rCount) {
 				hint.addEventListener('mousemove',removeHint);
 				hint.style.left = posHintX+'px';
 				hint.style.top = posHintY+'px';
+				// hint.style.border = '1px solid '+baseColor;
+				// hint.style.borderRadius = '50%';
+				hint.style.backgroundColor = baseColor;
 				hint.id = 'hint';
 				document.getElementById('maincontecst').appendChild(hint);
 				var hintTXT = document.createElement('span');
@@ -385,8 +549,6 @@ function init(wCount, hCount, rCount) {
 
 function blast(points){
 	var context = canvas.getContext("2d");
-	var posX = 20,
-		posY = canvas.height / 2;
 	// начальные параметры
 	var particles = {},
 		particleIndex = 0,
@@ -436,7 +598,7 @@ function blast(points){
 	Particle.prototype.drawBlast = function() {
 		var selfBlast = this;
 		selfBlast.x += selfBlast.vx;
-		if((selfBlast.y + selfBlast.vy<canvas.height-hheader-settings.particleSize)&&(selfBlast.y + selfBlast.vy>hheader-settings.particleSize))
+		if((selfBlast.y + selfBlast.vy<canvas.height-hfuter-settings.particleSize)&&(selfBlast.y + selfBlast.vy>hheader-settings.particleSize))
 			selfBlast.y += selfBlast.vy;
 		selfBlast.vy += settings.gravity;
 		selfBlast.life++;
@@ -479,98 +641,214 @@ function blast(points){
 		if ( running )
 			requestAnimationFrame(tick);
 		else{
-			var infoHTML='<H3 style="text-Align:center;">ВАШ РЕЗУЛЬТАТ = '+points+'</H3><br>'+
-			'<p>Эту игру разработатли для ВАС'+ "<br>"+
-			'<p>PM: Пахольчук Александр<br>'+
-			'<p>QA: Ламырев Дмитрий<br>'+
-			'<p>QA: Белобородов Антон<br>'+
-			'<p>JS: Миронович Ольга<br>'+
-			'<p>(C)';
-			createWindowInfo(infoHTML);
-
-			// ch++;
-			// if(ch===1000)
-			// 	clearInterval(timerBlast);
+			//записываем таблицу рекордов, если рекод установлен
+			updatePassword=Math.random();
+			$.ajax( {
+					url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+					data : { f : 'LOCKGET', n : stringName+'RECORDS', p : updatePassword },
+					success : lockGetReady, error : errorHandler
+				}
+			);
+	
+			var nameRecord = '';
+			var masRecord = new Array;
+			function lockGetReady(callresult) {
+				if ( callresult.error!=undefined )
+					alert(callresult.error);
+				else {
+					if ( callresult.result!="" ){
+						masRecord = JSON.parse(callresult.result);
+						console.log(masRecord);
+						//Проверяем, что рекорд есть
+						if((masRecord.some((el)=>{return Number(el.points)<=points}))||(masRecord.length<10)){
+							console.log('This is record');
+							var newRecord = masRecord.filter((el)=>{return Number(el.points)>points});
+							function compare(a,b) {
+								return b.points - a.points
+							};
+							newRecord.sort(compare);
+							if(newRecord.length>=10)
+								newRecord = newRecord.slice(1,9);
+							nameRecord = prompt('Введите название своего рекорда: ','Best');
+							var infoHTML='<H3 style="text-Align:center;">ТАБЛИЦА РЕКОРДОВ</H3><br>'+
+							'<p><ol start="1";style="margin-left:10px;">';
+							newRecord.forEach((el)=>{
+								infoHTML=infoHTML+
+								'<li style="font-size:20px;font-weight: normal;">'+ el.game+': '+Number(el.points)+".</li>"
+							});
+							var info={
+								game : nameRecord,
+								points : points
+							};
+							newRecord[newRecord.length] = info;
+							infoHTML=infoHTML+'<li style="font-size:25px;font-weight: bold;">'+ info.game+': '+Number(info.points)+".</li>";
+							var passRecord = masRecord.filter((el)=>{return Number(el.points)<=points});
+							passRecord.sort(compare);
+							//надо вывести новую таблицу рекордов
+							let j=0;
+							for(let i=newRecord.length;i<10;i++){
+								if(passRecord.length>j){
+									newRecord[i] = passRecord[j];
+									infoHTML+='<li>'+ passRecord[j].game+': '+Number(passRecord[j].points)+".</li>";
+									j++;
+								}
+								else break;
+							};
+							infoHTML+='</ol>';
+							console.log(infoHTML);
+							$.ajax( {
+								url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+								data : { f : 'UPDATE', n : stringName+'RECORDS', v : JSON.stringify(newRecord), p : updatePassword },
+								success : updateReady, error : errorHandler
+							});
+							
+						}
+					}
+					else{
+						nameRecord = prompt('Введите название своего рекорда: ','Best');
+						var info={
+							game : nameRecord,
+							points : points
+						};
+						masRecord[0] = info;
+						var infoHTML='<H3 style="text-Align:center;">ТАБЛИЦА РЕКОРДОВ</H3><br>'+
+						'<p><ol start="1";style="margin-left:10px; font-size:25px;font-weight: bold;">';
+						infoHTML=infoHTML+'<li>'+(masRecord.length)+'. '+ info.game+': '+Number(info.points)+".</li>";
+						$.ajax( {
+							url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+							data : { f : 'UPDATE', n : stringName+'RECORDS', v : JSON.stringify(masRecord), p : updatePassword },
+							success : updateReady, error : errorHandler
+						});
+						infoHTML+='</ol>';
+					};
+					if(infoHTML!=undefined)
+						var promiseDevelop = new Promise( (resolve,reject) => {
+							createWindowInfo(infoHTML,false);
+							document.getElementById('butCloseInfo').addEventListener("click", ()=>{closeInfo();resolve(true)});
+						});
+					else
+						var promiseDevelop = Promise.resolve(null);
+					    promiseDevelop.then(result=>{
+						console.log('Промис решился = '+result);
+						setTimeout(showDeveloper, 1000);						
+					});					
+				}
 			}
+			
+			function updateReady(callresult) {
+				console.log('the record saved');
+				if ( callresult.error!=undefined )
+					alert(callresult.error);
+				//showDeveloper()
+			}
+			
+			function errorHandler(jqXHR,statusStr,errorStr) {
+				alert(statusStr+' '+errorStr);
+				window.localStorage.setItem('RECORDS'+nameRecord,JSON.stringify(masRecord))
+				//showDeveloper()
+			}		
+	
+
+			function showDeveloper(){
+
+				var infoHTML='<H3 style="text-Align:center;">ВАШ РЕЗУЛЬТАТ = '+points+'</H3><br>'+
+				'<p>Эту игру разработатли для ВАС'+ "<br>"+
+				'<p>PM: Пахольчук Александр<br>'+
+				'<p>QA: Ламырев Дмитрий<br>'+
+				'<p>QA: Белобородов Антон<br>'+
+				'<p>JS: Миронович Ольга<br>'+
+				'<p>&copy';
+				createWindowInfo(infoHTML,false);
+	
+			}
+		}
 	};
 }
 
-function smallBlast(j,i,colorblast,mas){
+function smallBlast(jBlast,iBlast,colorblast,mas){
 	var context = canvas.getContext("2d");
-	// var posX = 20,
-	// 	posY = canvas.height / 2;
-	i;
-	j++;
+	if(!isTablet)
+		if(flSound){
+			blastAudio.currentTime = 0;
+			blastAudio.play();
+
+		};
 	// начальные параметры
 	var particles = {},
 		particleIndex = 0,
 		settings = {
-		density: 20,
-		particleSize: 0.1,
-		startingX: i*cellSize+cellSize/2,//canvas.width / 2,
-		startingY: j*cellSize+cellSize/2,//hheader+40,
-		gravity: 0.5
+		density: 1,
+		particleSize: 1,
+		startingX: (iBlast)*cellSize+cellSize/2,//canvas.width / 2,
+		startingY: hheader+(jBlast)*cellSize+cellSize/2,//hheader+40,
+		gravity: 3//скорость
 		};
 		// создание шариков
-	function Particle() {
+	function Particle(way) {
 		var selfBlast = this;
 		selfBlast.x = settings.startingX;
 		selfBlast.y = settings.startingY;
-		selfBlast.vx = Math.random() * 20 -10;
-		selfBlast.vy = Math.random() * 20 - 5 ;
+		// selfBlast.x1 = settings.startingX;
+		// selfBlast.y1 = settings.startingY;
+		selfBlast.vx = Math.random() * 20 - 10;
+		selfBlast.vy = Math.random() * 20 - 5;
 		// добавление нового шарика
 		particleIndex ++;
 		particles[particleIndex] = selfBlast;
 		selfBlast.id = particleIndex;
 		selfBlast.life = 0;
-		selfBlast.maxLife = cellSize;
+		selfBlast.maxLife = 100;
+		selfBlast.way = way;
 	};
 
 	Particle.prototype.drawBlast = function(cBl) {
 		var selfBlast = this;
-		if((selfBlast.x + selfBlast.vx<(i+1)*cellSize-8)&&(selfBlast.x + selfBlast.vx>i*cellSize+8))//&&(selfBlast.y + selfBlast.vy <(j+1)*cellSize)&&(selfBlast.y + selfBlast.vy>j*cellSize+10)){
+		// selfBlast.vy = Math.random()>0.5?-selfBlast.vy:selfBlast.vy;
+		// selfBlast.vx = Math.random()>0.5?-selfBlast.vx:selfBlast.vx;
+		var radiusCircle = cellSize/4+cellSize*0.1;
+		if((Math.abs(selfBlast.x + selfBlast.vx-settings.startingX)<radiusCircle)&&(Math.abs(selfBlast.y + selfBlast.vy-settings.startingY)<radiusCircle)){
+			//console.log(''+Math.abs(selfBlast.x + selfBlast.vx-settings.startingX)+'<'+radiusCircle);
 			selfBlast.x += selfBlast.vx;
-		// };
-		if((selfBlast.y + selfBlast.vy <(j+1)*cellSize-8)&&(selfBlast.y + selfBlast.vy>j*cellSize+8)){
 			selfBlast.y += selfBlast.vy;
+			// selfBlast.x1 -= selfBlast.vx;
+			// selfBlast.y1 -= selfBlast.vy;
+			// создание фигур
+			context.beginPath();
+			context.fillStyle=getColor(cBl);//Math.floor(Math.random()*(allColor-1+1))+1);//"#f00";
+			var R = Math.random()*2;
+			//context.arc(settings.startingX, settings.startingY, 5, 0, Math.PI*2, true); 
+			context.arc(selfBlast.x, selfBlast.y, R, 0, Math.PI*2, true); 
+			//context.arc(selfBlast.x1, selfBlast.y1, R, 0, Math.PI*2, true); 
+			if(Math.random()>0.8){
+				context.fillStyle=baseGrad;
+				context.arc(selfBlast.x, selfBlast.y, R, 0, Math.PI*2, true); 
+			};
+			context.closePath();
+			context.fill();
 		};
-		selfBlast.vy += settings.gravity;
-		selfBlast.xy += settings.gravity;
-		selfBlast.vy = Math.random()>0.5?-selfBlast.vy:selfBlast.vy;
-		selfBlast.vx = Math.random()>0.5?-selfBlast.vx:selfBlast.vx;
+		selfBlast.vy += selfBlast.way*settings.gravity;
+		selfBlast.xy += selfBlast.way*settings.gravity;
 		selfBlast.life++;
 
 		if (selfBlast.life >= selfBlast.maxLife) {
 			delete particles[selfBlast.id];
 		};
-		// создание фигур
-		context.beginPath();
-		context.fillStyle=getColor(cBl);//Math.floor(Math.random()*(allColor-1+1))+1);//"#f00";
-		var R = Math.random();
-		//context.arc(settings.startingX, settings.startingY, 5, 0, Math.PI*2, true); 
-		context.arc(selfBlast.x, selfBlast.y, R, 0, Math.PI*2, true); 
-		if(Math.random()>0.5){
-			context.fillStyle=baseGrad;
-			context.arc(selfBlast.x, selfBlast.y, R, 0, Math.PI*2, true); 
-		};
-		context.closePath();
-		context.fill();
 	};
 	var running = true;
 	requestAnimationFrame(tick);
-	setTimeout(function(){running=false},2000);
+	setTimeout(function(){running=false;clickAudio.src = clickAudiosrc;clickAudio.pause();},1500);
 
 	function resetField(){
 		let ch=0;
-		for(let i=0;i<9;i++)
-			for(let j=0;j<9;j++){
-				field.clearCell(i,j);
-				if(mas[i][j]>0)
-					if(mas[i][j]<10)
-						field.circleView(i,j,0, field.getColor(mas[i][j])); 
+		for(let iBlast=0;iBlast<9;iBlast++)
+			for(let jBlast=0;jBlast<9;jBlast++){
+				field.clearCell(iBlast,jBlast);
+				if(mas[iBlast][jBlast]>0)
+					if(mas[iBlast][jBlast]<10)
+						field.circleView(iBlast,jBlast,0, field.getColor(mas[iBlast][jBlast])); 
 					else {
-						field.circleViewNext(i,j,0, field.getColor(mas[i][j]));
-						field.drawOneRandomCircleNext(field.getColor(mas[i][j]),ch);
+						field.circleViewNext(iBlast,jBlast,0, field.getColor(mas[iBlast][jBlast]));
+						field.drawOneRandomCircleNext(field.getColor(mas[iBlast][jBlast]),ch);
 						ch++;
 					}
 
@@ -579,9 +857,10 @@ function smallBlast(j,i,colorblast,mas){
 	}
 	function tick() {
 		for (var k = 0; k < settings.density; k++) {           
-			if (Math.random()*10 > 9.9) {
-					new Particle();
-			}
+			if (Math.random() > 0.5)
+				new Particle(1);
+			else 
+				new Particle(-1);
 		};
 		for (var k in particles) {
 			particles[k].drawBlast(colorblast);
@@ -651,13 +930,15 @@ function L5()
 	};
 
 	function soundMultiple(){
-		if(firstSound){
+		if(!isTablet)
+			if(firstSound){
 			console.log('run musik');
+			clickAudio.currentTime = 0;
 			clickAudio.play();
 			clickAudio.autoplay = true; // Автоматически запускаем			
 			clickAudio.loop = true;
 			// firstSound = false
-		}
+			}
 	}
 	
 	function clearMultipleLoser(x,y)
@@ -803,7 +1084,7 @@ function L5()
 		return loser;
 	}
 	
-	self.showLosingMsg = function()//конец игру
+	self.showLosingMsg = function()//конец игры
 	{
 		
 		clearInterval(timerGame);
@@ -1088,17 +1369,19 @@ function L5()
 			}
 			else
 			{	
-				firstSound = false;
-				clickAudio.pause();
-				console.log('pause');
 				//если может пройти
+				console.log(''+curI+' '+curJ);
 				if(curI != -1 && curJ != -1)
 					if(self.checkPassability(i,j))
 					{
+						firstSound = false;
+						clickAudio.pause();
+						console.log('pause');
 						//делаем копию игры
 						for(let i=0;i<wCount;i++)
-							for(let j=0;j<hCount;j++)
+							for(let j=0;j<hCount;j++){
 								copyMas[i][j] = mas[i][j];
+							};
 						copypoints = points;
 						//ползёт
 						self.circleGo(i,j);
@@ -1111,12 +1394,13 @@ function L5()
 							self.drawRandomCirclesNext();
 						}
 						else 
-							console.log('Убили линию');
+							console.log('убиваем линию');
 							console.log(masKill);
 							//убиваем линию
-							for(let i=0;i<wCount;i++)
-								for(let j=0;j<hCount;j++)
-									masKill[i][j] = 0;
+							// if((wCount>0)&&(hCount>0))
+							// 	for(let i=0;i<wCount;i++)
+							// 		for(let j=0;j<hCount;j++)
+							// 			masKill[i][j] = 0;
 							self.drawPoints();
 					}
 			}
@@ -1190,15 +1474,20 @@ function L5()
 		context.fill();
 		context.stroke();
 
-
+		isTablet = false;//вообще отключим здесь проверку
 		var img = new Image();
 		img.onload = function() {
-			context.drawImage(img,x1+cellSize/4, y1+cellSize/4,cellSize/2,cellSize/2);
-			//console.log('1 = '+(y1+cellSize/4));
+			if(isTablet)
+				context.drawImage(img,x1+cellSize/2-cellSize/8, y1+cellSize/2-cellSize/8,cellSize/4,cellSize/4);
+			else
+				context.drawImage(img,x1+cellSize/4, y1+cellSize/4,cellSize/2,cellSize/2);
 		};
 		if(punct===5){
 			//info
 			img.src = "user-guide.svg";
+			if(isTablet){
+				self.fillTextCircle("Правила",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
 		}
 		else if(punct===4){
 			//sound
@@ -1208,26 +1497,70 @@ function L5()
 			else{
 				img.src = "mute.svg";
 			};
+			if(isTablet){
+				self.fillTextCircle("Звук",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
 		}
 		else if(punct===3){
 			//save
 			img.src = "save.svg";
+			if(isTablet){
+				self.fillTextCircle("Сохранить",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
 		}
 		else if(punct===2){
 			//open
 			img.src = "open.svg";
+			if(isTablet){
+				self.fillTextCircle("Открыть",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
 		}
 		else if(punct===1){
 			//undo
 			img.src = "undo.svg";
-		}
+			if(isTablet){
+				self.fillTextCircle("Отменить",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
+	   }
 		else if(punct===0){
 			//reboot
 			img.src = "reboot.svg";
+			if(isTablet){
+				self.fillTextCircle("Новая",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
 		}
+		else if(punct===6){
+			//records
+			img.src = "records.svg";
+			if(isTablet){
+				self.fillTextCircle("рекорды",x1+cellSize/2,y1+cellSize/2+2,15,10);
+			}
+	   }
     };
   
-  	//чистка ячейки
+	self.fillTextCircle = function(text,x,y,radius,startRotation){
+		var numDegreesPerLetter = 2*Math.PI / text.length;
+		context.fillStyle = 'black'; 
+		context.font = "bold 15px Serif";
+		context.save();
+		context.translate(x,y);
+		context.rotate(startRotation);
+	 
+		for(var i=0;i<text.length;i++){
+		   context.save();
+		   context.translate(radius, 0);
+		   context.translate(10, -10);
+			context.rotate(1.4)
+			context.translate(-10, 10);          
+			context.fillText(text[i],0,0);
+			//context.strokeStyle = "green";
+			//context.strokeText(text[i],0,0);
+			context.restore();
+			context.rotate(numDegreesPerLetter);
+		}
+		context.restore();
+	 }
+  	//ощищаем ячейку
   	self.clearCell = function(y,x) 
 	{
 		//определяем текущие координаты ячейки
@@ -1255,9 +1588,9 @@ function L5()
 	{
 		var chC=1;
 		var nn = n>10?n-10:n;
-		for (var prop in Colors.names){
+		for (var prop in colors.names){
 			if (chC === nn ){
-				return Colors.names[prop];
+				return colors.names[prop];
 			}
 			chC++;
 		};		
@@ -1379,21 +1712,22 @@ function L5()
 	self.drawPoints = function() 
 	{
 		
-		context.beginPath();
-		context.fillStyle = baseColor;
-		context.strokeStyle = "#000";
-		context.moveTo(size*wCount+2, 0);
-    	context.fillRect(size*wCount+2, hheader, size*wCount+hfuter+hheader+30, size*hCount);
-		context.stroke();
+		// context.beginPath();
+		// context.fillStyle = baseColor;
+		// context.strokeStyle = "#000";
+		// context.moveTo(size*wCount+2, 0);
+    	// context.fillRect(size*wCount+2, hheader, size*wCount+hfuter+hheader+30, size*hCount);
+		// context.stroke();
 
-		context.font = "bold 40px Sans";
+		context.font = fontPoints;
 		var pointsTXT = ''+points;
 		while(pointsTXT.length<6)
 			pointsTXT = "0"+pointsTXT;
 		context.fillStyle = baseColor; // or whatever color the background is.
 		context.textBaseline="middle";
 		context.textAlign = 'start';
-		context.fillRect(0,0,cellSize*3,hheader-2);
+		var pozNextBall = canvas.width/2-(sizeNextball*3)/2;
+		context.fillRect(0,0,pozNextBall-2,hheader-2);
 		context.fillStyle = '#000000'; // or whatever color the text should be.
 		context.fillText(pointsTXT, pointsNow,hheader/2);	
 	}
@@ -1445,7 +1779,7 @@ function L5()
 			var nextColor = self.drawRandomCircleNext();	
 			if(nextColor===0)
 				break;
-				self.drawOneRandomCircleNext(nextColor,i)
+			self.drawOneRandomCircleNext(nextColor,i)
 		};
 		//проверям, может рэндомные шары норм в линию на уничтожение встали
 		for (var i = 0; i < rNext; i++) 
@@ -1460,7 +1794,7 @@ function L5()
 	//рисуем меню
 	self.drawMenu = function(){
 		var posMenu = cellSize;//canvas.width/2-(cellSize*6)/2;
-		for(var i=0;i<6;i++)
+		for(var i=0;i<7;i++)
 			self.cellViewMenu(posMenu+i*cellSize,canvas.height-hfuter,posMenu+(i+1)*cellSize,canvas.height-hfuter+cellSize,i);
 	};
 
@@ -1506,11 +1840,17 @@ function L5()
 				ch=+copyMas[i][j]
 			};
 		if(isNaN(ch)) return;
-		ch=0;
+		self.drawPrevGame(copyMas,copypoints);
+	};
+
+	self.drawPrevGame = function(oldMas,oldPoints){
+		var ch=0;
+		console.log('oldMas');
+		console.log(oldMas);
 		for(let i=0;i<wCount;i++)
 			for(let j=0;j<wCount;j++){
 				self.clearCell(i,j);
-				mas[i][j]=copyMas[i][j];
+				mas[i][j]=oldMas[i][j];
 				if(mas[i][j]>0)
 					if(mas[i][j]<10)
 						self.circleView(i,j,0, self.getColor(mas[i][j])); 
@@ -1521,8 +1861,152 @@ function L5()
 					}
 
 			};
-		points = copypoints;
+		points = oldPoints;
 		self.drawPoints();
-	};
+	}
+
+	self.saveGame = function(nameGame){
+		updatePassword=Math.random();
+		$.ajax( {
+				url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+				data : { f : 'LOCKGET', n : stringName+'GAME_'+nameGame, p : updatePassword },
+				success : lockGetReady, error : errorHandler
+			}
+		);
+
+
+		function lockGetReady(callresult) {
+			if ( callresult.error!=undefined )
+				alert(callresult.error);
+			else {
+				// нам всё равно, что было прочитано -
+				// всё равно перезаписываем
+				var info={
+					game : mas,
+					points : points
+				};
+				$.ajax( {
+						url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+						data : { f : 'UPDATE', n : stringName+'GAME_'+nameGame, v : JSON.stringify(info), p : updatePassword },
+						success : updateReady, error : errorHandler
+					}
+				);
+			}
+		}
+		
+		function updateReady(callresult) {
+			console.log('the game saved');
+			if ( callresult.error!=undefined )
+				alert(callresult.error);
+		}
+		
+		function errorHandler(jqXHR,statusStr,errorStr) {
+			alert(statusStr+' '+errorStr);
+			window.localStorage.setItem('GAME_'+nameGame,JSON.stringify(mas))
+			window.localStorage.setItem('GAME_POINTS_'+nameGame,JSON.stringify(points))
+		}		
+	}
+
+	self.showAllRecords = function(loadGame){
+		$.ajax(
+			{
+				url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+				data : { f : 'READ', n : stringName+'RECORDS' },
+				success : readReady, error : errorHandler
+			}
+		);
+
+		function readReady(callresult) {
+			console.log('RECORDS loaded');
+			console.log(callresult);
+			if ( callresult.error!=undefined )
+				alert(callresult.error);
+			else if ( callresult.result!="" ) {
+				var newRecord = JSON.parse(callresult.result);
+				console.log(newRecord);
+				var infoHTML='<H3 style="text-Align:center;">ТАБЛИЦА РЕКОРДОВ</H3><br>'+
+				'<p><ol start = "1";style="margin-left:10px;">';
+				newRecord.forEach((el,index)=>{
+					infoHTML+='<li style="font-size:20px;font-weight: normal;">'+ el.game+': '+Number(el.points)+".</li>"
+				});
+				infoHTML+='</oi>';
+				console.log(infoHTML);
+				createWindowInfo(infoHTML)
+			}
+		}
+
+		function errorHandler(jqXHR,statusStr,errorStr) {
+			alert(statusStr+' '+errorStr);
+			masStore = JSON.parse(window.localStorage.getItem('GAME_'+loadGame));
+			savePoints = JSON.parse(window.localStorage.getItem('GAME_POINTS_'+loadGame));
+			loadGameFromServerOrLS(masStore,savePoints);
+		}		
+		function loadGameFromServerOrLS(masStore,savePoints){
+			console.log(masStore);
+			if(masStore){
+				self.drawPrevGame(masStore,savePoints);
+				copypoints = savePoints;
+				copyMas = new Array(wCount);
+				for(var i = 0; i < wCount; i++)
+				{
+					copyMas[i] = new Array(hCount);
+					for(var j = 0; j < hCount; j++)
+						copyMas[i][j] = 0;
+				};
+				return true
+			}
+			else return false
+		}
+	}
+
+
+	self.loadSavedGame = function(loadGame){
+		$.ajax(
+			{
+				url : ajaxHandlerScript, type : 'POST', cache : false, dataType:'json',
+				data : { f : 'READ', n : stringName+'GAME_'+loadGame },
+				success : readReady, error : errorHandler
+			}
+		);
+
+		var masStore = undefined;
+		var savePoints = 0;
+		
+		function readReady(callresult) {
+			console.log('the game loaded');
+			console.log(callresult);
+			if ( callresult.error!=undefined )
+				alert(callresult.error);
+			else if ( callresult.result!="" ) {
+				var info=JSON.parse(callresult.result);
+				masStore = info.game;
+				savePoints = info.points;
+				loadGameFromServerOrLS(masStore,savePoints);
+			}
+		}
+
+		function errorHandler(jqXHR,statusStr,errorStr) {
+			alert(statusStr+' '+errorStr);
+			masStore = JSON.parse(window.localStorage.getItem('GAME_'+loadGame));
+			savePoints = JSON.parse(window.localStorage.getItem('GAME_POINTS_'+loadGame));
+			loadGameFromServerOrLS(masStore,savePoints);
+		}		
+		function loadGameFromServerOrLS(masStore,savePoints){
+			console.log(masStore);
+			if(masStore){
+				self.drawPrevGame(masStore,savePoints);
+				copypoints = savePoints;
+				copyMas = new Array(wCount);
+				for(var i = 0; i < wCount; i++)
+				{
+					copyMas[i] = new Array(hCount);
+					for(var j = 0; j < hCount; j++)
+						copyMas[i][j] = 0;
+				};
+				return true
+			}
+			else return false
+		}
+	}
 
 }

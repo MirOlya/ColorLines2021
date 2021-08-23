@@ -22,3 +22,11 @@ p{
     transition-timing-function: linear;
     overflow: hidden;
 }
+
+#begin{
+    -webkit-transition-duration: 3s; /* для Android */
+    transition-duration: 3s;
+    -webkit-transition-timing-function: linear; /* для Android */
+    transition-timing-function: linear;
+    overflow: hidden;
+}
